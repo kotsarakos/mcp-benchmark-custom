@@ -5,6 +5,9 @@ env/
 .venv/
 .env/
 
+
+mcp_servers/api_key
+.env
 # Python cache
 __pycache__/
 *.py[cod]

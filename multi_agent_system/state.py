@@ -7,7 +7,7 @@ class AgentState(TypedDict):
     input: str
 
     # The global strategy and sequence of steps
-    # str -> metadata keys (e.g., "total_steps", "strategy")
+    # str -> metadata keys ("total_steps", "task", parallel)
     # Any -> values (int, string, or the List of step dictionaries)
     plan: Dict[str, Any]
 
@@ -22,17 +22,16 @@ class AgentState(TypedDict):
     # Last failure reason (if any) to provide immediate feedback to the Planner
     last_failure_reason: str
 
+    # Selected MCP Servver for a Task
+    selected_servers: Dict[str, Any]
+
     # --- EXECUTION TRACKING ---
     completed_tasks_results: Dict[str, Any]
     finished_task_ids: List[str]
     current_step_index: int
-
-    # --- DYNAMIC TOOL RETRIEVAL ---
-    selected_tools: Dict[str, Any] 
     
     # --- MESSAGE HISTORY ---
     messages: Annotated[List[Dict[str, Any]], operator.add]
-    
     
     
     # CHANGE 1: Use Annotated and operator.add to accumulate errors over time

@@ -1,0 +1,950 @@
+{
+  "name": "Unit Converter",
+  "tools": {
+    "convert_temperature": {
+      "name": "convert_temperature",
+      "description": "Convert temperature between units.",
+      "input_schema": {
+        "properties": {
+          "value": {
+            "description": "Temperature value to convert",
+            "type": "number"
+          },
+          "from_unit": {
+            "description": "Source unit",
+            "enum": [
+              "celsius",
+              "fahrenheit",
+              "kelvin"
+            ],
+            "type": "string"
+          },
+          "to_unit": {
+            "description": "Target unit",
+            "enum": [
+              "celsius",
+              "fahrenheit",
+              "kelvin"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "from_unit",
+          "to_unit"
+        ],
+        "type": "object"
+      }
+    },
+    "convert_angle": {
+      "name": "convert_angle",
+      "description": "Convert angle between units.",
+      "input_schema": {
+        "properties": {
+          "value": {
+            "description": "Angle value to convert",
+            "type": "number"
+          },
+          "from_unit": {
+            "description": "Source unit",
+            "enum": [
+              "degrees",
+              "radians",
+              "arcmin",
+              "arcsec",
+              "turns",
+              "gons"
+            ],
+            "type": "string"
+          },
+          "to_unit": {
+            "description": "Target unit",
+            "enum": [
+              "degrees",
+              "radians",
+              "arcmin",
+              "arcsec",
+              "turns",
+              "gons"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "from_unit",
+          "to_unit"
+        ],
+        "type": "object"
+      }
+    },
+    "convert_length": {
+      "name": "convert_length",
+      "description": "Convert length between units.",
+      "input_schema": {
+        "properties": {
+          "value": {
+            "description": "Length value to convert",
+            "type": "number"
+          },
+          "from_unit": {
+            "description": "Source unit",
+            "enum": [
+              "angstrom",
+              "astronomical unit",
+              "cable",
+              "centimeter",
+              "chain (surveyors)",
+              "decimeter",
+              "em (pica)",
+              "fathom",
+              "foot",
+              "foot (US survey)",
+              "furlong",
+              "hand",
+              "hectometer",
+              "inch",
+              "kilometer",
+              "light year",
+              "meter",
+              "micrometer",
+              "mil",
+              "mile",
+              "nautical mile",
+              "nautical mile (UK)",
+              "millimeter",
+              "nanometer",
+              "parsec",
+              "picometer",
+              "Scandinavian mile",
+              "thou",
+              "yard"
+            ],
+            "type": "string"
+          },
+          "to_unit": {
+            "description": "Target unit",
+            "enum": [
+              "angstrom",
+              "astronomical unit",
+              "cable",
+              "centimeter",
+              "chain (surveyors)",
+              "decimeter",
+              "em (pica)",
+              "fathom",
+              "foot",
+              "foot (US survey)",
+              "furlong",
+              "hand",
+              "hectometer",
+              "inch",
+              "kilometer",
+              "light year",
+              "meter",
+              "micrometer",
+              "mil",
+              "mile",
+              "nautical mile",
+              "nautical mile (UK)",
+              "millimeter",
+              "nanometer",
+              "parsec",
+              "picometer",
+              "Scandinavian mile",
+              "thou",
+              "yard"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "from_unit",
+          "to_unit"
+        ],
+        "type": "object"
+      }
+    },
+    "convert_energy": {
+      "name": "convert_energy",
+      "description": "Convert energy between units.",
+      "input_schema": {
+        "properties": {
+          "value": {
+            "description": "Energy value to convert",
+            "type": "number"
+          },
+          "from_unit": {
+            "description": "Source unit",
+            "enum": [
+              "joule",
+              "kilojoule",
+              "megajoule",
+              "gigajoule",
+              "terajoule",
+              "petajoule",
+              "exajoule",
+              "watt hour",
+              "kilowatt hour",
+              "megawatt hour",
+              "gigawatt hour",
+              "terawatt hour",
+              "Btu",
+              "calorie",
+              "kilocalorie",
+              "therm",
+              "foot‑pound force",
+              "inch‑pound force",
+              "erg",
+              "electron volt"
+            ],
+            "type": "string"
+          },
+          "to_unit": {
+            "description": "Target unit",
+            "enum": [
+              "joule",
+              "kilojoule",
+              "megajoule",
+              "gigajoule",
+              "terajoule",
+              "petajoule",
+              "exajoule",
+              "watt hour",
+              "kilowatt hour",
+              "megawatt hour",
+              "gigawatt hour",
+              "terawatt hour",
+              "Btu",
+              "calorie",
+              "kilocalorie",
+              "therm",
+              "foot‑pound force",
+              "inch‑pound force",
+              "erg",
+              "electron volt"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "from_unit",
+          "to_unit"
+        ],
+        "type": "object"
+      }
+    },
+    "convert_force": {
+      "name": "convert_force",
+      "description": "Convert force between units.",
+      "input_schema": {
+        "properties": {
+          "value": {
+            "description": "Force value to convert",
+            "type": "number"
+          },
+          "from_unit": {
+            "description": "Source unit",
+            "enum": [
+              "dynes",
+              "kilograms force",
+              "kilonewtons",
+              "kips",
+              "meganewtons",
+              "newtons",
+              "pounds force",
+              "tonnes force",
+              "long tons force",
+              "short tons force"
+            ],
+            "type": "string"
+          },
+          "to_unit": {
+            "description": "Target unit",
+            "enum": [
+              "dynes",
+              "kilograms force",
+              "kilonewtons",
+              "kips",
+              "meganewtons",
+              "newtons",
+              "pounds force",
+              "tonnes force",
+              "long tons force",
+              "short tons force"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "from_unit",
+          "to_unit"
+        ],
+        "type": "object"
+      }
+    },
+    "convert_pressure": {
+      "name": "convert_pressure",
+      "description": "Convert pressure between units.",
+      "input_schema": {
+        "properties": {
+          "value": {
+            "description": "Pressure value to convert",
+            "type": "number"
+          },
+          "from_unit": {
+            "description": "Source unit",
+            "enum": [
+              "pascal",
+              "hectopascal",
+              "kilopascal",
+              "megapascal",
+              "bar",
+              "atmosphere",
+              "centimeters of water",
+              "inches of water",
+              "feet of water",
+              "meters of water",
+              "millimeters of mercury",
+              "inches of mercury",
+              "kilogram force per square centimeter",
+              "newtons per square centimeter",
+              "newtons per square millimeter",
+              "psi",
+              "psf"
+            ],
+            "type": "string"
+          },
+          "to_unit": {
+            "description": "Target unit",
+            "enum": [
+              "pascal",
+              "hectopascal",
+              "kilopascal",
+              "megapascal",
+              "bar",
+              "atmosphere",
+              "centimeters of water",
+              "inches of water",
+              "feet of water",
+              "meters of water",
+              "millimeters of mercury",
+              "inches of mercury",
+              "kilogram force per square centimeter",
+              "newtons per square centimeter",
+              "newtons per square millimeter",
+              "psi",
+              "psf"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "from_unit",
+          "to_unit"
+        ],
+        "type": "object"
+      }
+    },
+    "convert_power": {
+      "name": "convert_power",
+      "description": "Convert power between units.",
+      "input_schema": {
+        "properties": {
+          "value": {
+            "description": "Power value to convert",
+            "type": "number"
+          },
+          "from_unit": {
+            "description": "Source unit",
+            "enum": [
+              "Btu per hour",
+              "foot pound‑force per second",
+              "ton of refrigeration",
+              "calorie per hour",
+              "kilocalorie per hour",
+              "horsepower",
+              "horsepower (metric)",
+              "kilogram‑force meter per second",
+              "watt",
+              "kilowatt",
+              "megawatt",
+              "gigawatt",
+              "terawatt",
+              "petawatt"
+            ],
+            "type": "string"
+          },
+          "to_unit": {
+            "description": "Target unit",
+            "enum": [
+              "Btu per hour",
+              "foot pound‑force per second",
+              "ton of refrigeration",
+              "calorie per hour",
+              "kilocalorie per hour",
+              "horsepower",
+              "horsepower (metric)",
+              "kilogram‑force meter per second",
+              "watt",
+              "kilowatt",
+              "megawatt",
+              "gigawatt",
+              "terawatt",
+              "petawatt"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "from_unit",
+          "to_unit"
+        ],
+        "type": "object"
+      }
+    },
+    "convert_speed": {
+      "name": "convert_speed",
+      "description": "Convert speed between units.",
+      "input_schema": {
+        "properties": {
+          "value": {
+            "description": "Speed value to convert",
+            "type": "number"
+          },
+          "from_unit": {
+            "description": "Source unit",
+            "enum": [
+              "centimeters per minute",
+              "centimeters per second",
+              "feet per hour",
+              "feet per minute",
+              "feet per second",
+              "inches per minute",
+              "inches per second",
+              "kilometers per hour",
+              "kilometers per second",
+              "knots",
+              "Mach (ISA sea level)",
+              "speed of sound",
+              "meters per hour",
+              "meters per minute",
+              "meters per second",
+              "miles per hour",
+              "miles per minute",
+              "miles per second",
+              "yards per hour",
+              "yards per minute",
+              "yards per second",
+              "speed of light"
+            ],
+            "type": "string"
+          },
+          "to_unit": {
+            "description": "Target unit",
+            "enum": [
+              "centimeters per minute",
+              "centimeters per second",
+              "feet per hour",
+              "feet per minute",
+              "feet per second",
+              "inches per minute",
+              "inches per second",
+              "kilometers per hour",
+              "kilometers per second",
+              "knots",
+              "Mach (ISA sea level)",
+              "speed of sound",
+              "meters per hour",
+              "meters per minute",
+              "meters per second",
+              "miles per hour",
+              "miles per minute",
+              "miles per second",
+              "yards per hour",
+              "yards per minute",
+              "yards per second",
+              "speed of light"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "from_unit",
+          "to_unit"
+        ],
+        "type": "object"
+      }
+    },
+    "convert_area": {
+      "name": "convert_area",
+      "description": "Convert area between units.",
+      "input_schema": {
+        "properties": {
+          "value": {
+            "description": "Area value to convert",
+            "type": "number"
+          },
+          "from_unit": {
+            "description": "Source unit",
+            "enum": [
+              "acre",
+              "are",
+              "hectare",
+              "square centimeter",
+              "square foot",
+              "square inch",
+              "square kilometer",
+              "square meter",
+              "square mile",
+              "square millimeter",
+              "square yard"
+            ],
+            "type": "string"
+          },
+          "to_unit": {
+            "description": "Target unit",
+            "enum": [
+              "acre",
+              "are",
+              "hectare",
+              "square centimeter",
+              "square foot",
+              "square inch",
+              "square kilometer",
+              "square meter",
+              "square mile",
+              "square millimeter",
+              "square yard"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "from_unit",
+          "to_unit"
+        ],
+        "type": "object"
+      }
+    },
+    "convert_mass": {
+      "name": "convert_mass",
+      "description": "Convert weight between units.",
+      "input_schema": {
+        "properties": {
+          "value": {
+            "description": "Weight value to convert",
+            "type": "number"
+          },
+          "from_unit": {
+            "description": "Source unit",
+            "enum": [
+              "carat",
+              "decagram",
+              "hectogram",
+              "gram",
+              "milligram",
+              "microgram",
+              "nanogram",
+              "picogram",
+              "femtogram",
+              "grain",
+              "ounce",
+              "troy ounce",
+              "pound",
+              "stone",
+              "short ton (US)",
+              "long ton (UK)",
+              "tonne",
+              "kilotonne",
+              "megatonne",
+              "kilogram"
+            ],
+            "type": "string"
+          },
+          "to_unit": {
+            "description": "Target unit",
+            "enum": [
+              "carat",
+              "decagram",
+              "hectogram",
+              "gram",
+              "milligram",
+              "microgram",
+              "nanogram",
+              "picogram",
+              "femtogram",
+              "grain",
+              "ounce",
+              "troy ounce",
+              "pound",
+              "stone",
+              "short ton (US)",
+              "long ton (UK)",
+              "tonne",
+              "kilotonne",
+              "megatonne",
+              "kilogram"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "from_unit",
+          "to_unit"
+        ],
+        "type": "object"
+      }
+    },
+    "convert_volume": {
+      "name": "convert_volume",
+      "description": "Convert volume between units.",
+      "input_schema": {
+        "properties": {
+          "value": {
+            "description": "Volume value to convert",
+            "type": "number"
+          },
+          "from_unit": {
+            "description": "Source unit",
+            "enum": [
+              "acre foot",
+              "barrel (oil)",
+              "bushel (UK)",
+              "bushel (US)",
+              "bushel",
+              "centiliter",
+              "cubic centimeter",
+              "cubic decimeter",
+              "cubic foot",
+              "cubic inch",
+              "cubic kilometer",
+              "cubic meter",
+              "cubic mile",
+              "cubic millimeter",
+              "cubic yard",
+              "cup",
+              "deciliter",
+              "fluid ounce (imperial)",
+              "fluid ounce (US)",
+              "fluid ounce",
+              "gallon (imperial)",
+              "gallon (US)",
+              "gallon",
+              "kiloliter",
+              "liter",
+              "milliliter",
+              "microliter",
+              "nanoliter",
+              "picoliter",
+              "pint (imperial)",
+              "pint (US)",
+              "pint",
+              "quart (imperial)",
+              "quart (US)",
+              "quart",
+              "tablespoon",
+              "teaspoon"
+            ],
+            "type": "string"
+          },
+          "to_unit": {
+            "description": "Target unit",
+            "enum": [
+              "acre foot",
+              "barrel (oil)",
+              "bushel (UK)",
+              "bushel (US)",
+              "bushel",
+              "centiliter",
+              "cubic centimeter",
+              "cubic decimeter",
+              "cubic foot",
+              "cubic inch",
+              "cubic kilometer",
+              "cubic meter",
+              "cubic mile",
+              "cubic millimeter",
+              "cubic yard",
+              "cup",
+              "deciliter",
+              "fluid ounce (imperial)",
+              "fluid ounce (US)",
+              "fluid ounce",
+              "gallon (imperial)",
+              "gallon (US)",
+              "gallon",
+              "kiloliter",
+              "liter",
+              "milliliter",
+              "microliter",
+              "nanoliter",
+              "picoliter",
+              "pint (imperial)",
+              "pint (US)",
+              "pint",
+              "quart (imperial)",
+              "quart (US)",
+              "quart",
+              "tablespoon",
+              "teaspoon"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "from_unit",
+          "to_unit"
+        ],
+        "type": "object"
+      }
+    },
+    "convert_computer_data": {
+      "name": "convert_computer_data",
+      "description": "Convert computer storage between units.",
+      "input_schema": {
+        "properties": {
+          "value": {
+            "description": "Computer storage value to convert",
+            "type": "number"
+          },
+          "from_unit": {
+            "description": "Source unit",
+            "enum": [
+              "bits",
+              "bytes",
+              "kilobytes",
+              "megabytes",
+              "gigabytes",
+              "terabytes",
+              "petabytes",
+              "exabytes"
+            ],
+            "type": "string"
+          },
+          "to_unit": {
+            "description": "Target unit",
+            "enum": [
+              "bits",
+              "bytes",
+              "kilobytes",
+              "megabytes",
+              "gigabytes",
+              "terabytes",
+              "petabytes",
+              "exabytes"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "from_unit",
+          "to_unit"
+        ],
+        "type": "object"
+      }
+    },
+    "convert_density": {
+      "name": "convert_density",
+      "description": "Convert density between units.",
+      "input_schema": {
+        "properties": {
+          "value": {
+            "description": "Density value to convert",
+            "type": "number"
+          },
+          "from_unit": {
+            "description": "Source unit",
+            "enum": [
+              "grains per gallon (UK)",
+              "grains per gallon (US)",
+              "grains per gallon",
+              "grams per cubic centimeter",
+              "grams per liter",
+              "kilograms per liter",
+              "kilograms per cubic meter",
+              "milligrams per liter",
+              "ounces per gallon (UK)",
+              "ounces per gallon (US)",
+              "ounces per gallon",
+              "pounds per cubic foot",
+              "pounds per gallon (UK)",
+              "pounds per gallon (US)",
+              "pounds per gallon",
+              "tonnes per cubic meter",
+              "tons per cubic yard (UK)",
+              "tons per cubic yard (US)",
+              "tons per cubic yard"
+            ],
+            "type": "string"
+          },
+          "to_unit": {
+            "description": "Target unit",
+            "enum": [
+              "grains per gallon (UK)",
+              "grains per gallon (US)",
+              "grains per gallon",
+              "grams per cubic centimeter",
+              "grams per liter",
+              "kilograms per liter",
+              "kilograms per cubic meter",
+              "milligrams per liter",
+              "ounces per gallon (UK)",
+              "ounces per gallon (US)",
+              "ounces per gallon",
+              "pounds per cubic foot",
+              "pounds per gallon (UK)",
+              "pounds per gallon (US)",
+              "pounds per gallon",
+              "tonnes per cubic meter",
+              "tons per cubic yard (UK)",
+              "tons per cubic yard (US)",
+              "tons per cubic yard"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "from_unit",
+          "to_unit"
+        ],
+        "type": "object"
+      }
+    },
+    "convert_time": {
+      "name": "convert_time",
+      "description": "Convert time between units.",
+      "input_schema": {
+        "properties": {
+          "value": {
+            "description": "Time value to convert",
+            "type": "number"
+          },
+          "from_unit": {
+            "description": "Source unit",
+            "enum": [
+              "picoseconds",
+              "femtoseconds",
+              "nanoseconds",
+              "microseconds",
+              "milliseconds",
+              "seconds",
+              "minutes",
+              "hours",
+              "days",
+              "weeks",
+              "fortnights",
+              "months",
+              "quarters",
+              "synodic months",
+              "years",
+              "decades",
+              "centuries",
+              "millennia"
+            ],
+            "type": "string"
+          },
+          "to_unit": {
+            "description": "Target unit",
+            "enum": [
+              "picoseconds",
+              "femtoseconds",
+              "nanoseconds",
+              "microseconds",
+              "milliseconds",
+              "seconds",
+              "minutes",
+              "hours",
+              "days",
+              "weeks",
+              "fortnights",
+              "months",
+              "quarters",
+              "synodic months",
+              "years",
+              "decades",
+              "centuries",
+              "millennia"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "from_unit",
+          "to_unit"
+        ],
+        "type": "object"
+      }
+    },
+    "convert_batch": {
+      "name": "convert_batch",
+      "description": "Perform multiple unit conversions in a single batch request.\n\nEach request in the batch should contain:\n- value: The numeric value to convert\n- from_unit: Source unit for conversion\n- to_unit: Target unit for conversion\n- conversion_type: Type of conversion (temperature, length, mass, etc.)\n- request_id: Optional identifier for tracking individual requests\n\nReturns a structured response with individual results for each conversion,\nincluding success/failure status and either converted values or error messages.",
+      "input_schema": {
+        "properties": {
+          "requests": {
+            "description": "List of conversion requests. Each request should contain: value (float), from_unit (str), to_unit (str), conversion_type (str), and optionally request_id (str)",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "requests"
+        ],
+        "type": "object"
+      }
+    },
+    "list_supported_units": {
+      "name": "list_supported_units",
+      "description": "List all supported units for each conversion type or for a specific type.",
+      "input_schema": {
+        "properties": {
+          "unit_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "angle",
+                  "area",
+                  "computer_data",
+                  "density",
+                  "energy",
+                  "force",
+                  "length",
+                  "mass",
+                  "power",
+                  "pressure",
+                  "speed",
+                  "temperature",
+                  "time",
+                  "volume"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Specific unit type to get supported units for. If not specified, returns all supported units."
+          }
+        },
+        "type": "object"
+      }
+    }
+  }
+}

@@ -1,0 +1,235 @@
+{
+  "name": "Google Maps",
+  "tools": {
+    "search_nearby": {
+      "name": "search_nearby",
+      "description": "Search for nearby places based on location, with optional filtering by keywords, distance, rating, and operating hours",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "center": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "string",
+                "description": "Address, landmark name, or coordinates (coordinate format: lat,lng)"
+              },
+              "isCoordinates": {
+                "type": "boolean",
+                "default": false,
+                "description": "Whether the value is coordinates"
+              }
+            },
+            "required": [
+              "value"
+            ],
+            "additionalProperties": false,
+            "description": "Search center point"
+          },
+          "keyword": {
+            "type": "string",
+            "description": "Search keyword (e.g., restaurant, cafe, hotel)"
+          },
+          "radius": {
+            "type": "number",
+            "default": 1000,
+            "description": "Search radius in meters"
+          },
+          "openNow": {
+            "type": "boolean",
+            "default": false,
+            "description": "Only show places that are currently open"
+          },
+          "minRating": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 5,
+            "description": "Minimum rating requirement (0-5)"
+          }
+        },
+        "required": [
+          "center"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    "get_place_details": {
+      "name": "get_place_details",
+      "description": "Get detailed information about a specific place including contact details, reviews, ratings, and operating hours",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "placeId": {
+            "type": "string",
+            "description": "Google Maps place ID"
+          }
+        },
+        "required": [
+          "placeId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    "maps_geocode": {
+      "name": "maps_geocode",
+      "description": "Convert addresses or place names to geographic coordinates (latitude and longitude)",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "Address or place name to convert to coordinates"
+          }
+        },
+        "required": [
+          "address"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    "maps_reverse_geocode": {
+      "name": "maps_reverse_geocode",
+      "description": "Convert geographic coordinates (latitude and longitude) to a human-readable address",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "description": "Latitude coordinate"
+          },
+          "longitude": {
+            "type": "number",
+            "description": "Longitude coordinate"
+          }
+        },
+        "required": [
+          "latitude",
+          "longitude"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    "maps_distance_matrix": {
+      "name": "maps_distance_matrix",
+      "description": "Calculate travel distances and durations between multiple origins and destinations for different travel modes",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "origins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of origin addresses or coordinates"
+          },
+          "destinations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of destination addresses or coordinates"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "driving",
+              "walking",
+              "bicycling",
+              "transit"
+            ],
+            "default": "driving",
+            "description": "Travel mode for calculation"
+          }
+        },
+        "required": [
+          "origins",
+          "destinations"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    "maps_directions": {
+      "name": "maps_directions",
+      "description": "Get detailed turn-by-turn navigation directions between two locations with route information",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "origin": {
+            "type": "string",
+            "description": "Starting point address or coordinates"
+          },
+          "destination": {
+            "type": "string",
+            "description": "Destination address or coordinates"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "driving",
+              "walking",
+              "bicycling",
+              "transit"
+            ],
+            "default": "driving",
+            "description": "Travel mode for directions"
+          },
+          "departure_time": {
+            "type": "string",
+            "description": "Departure time (ISO string format)"
+          },
+          "arrival_time": {
+            "type": "string",
+            "description": "Arrival time (ISO string format)"
+          }
+        },
+        "required": [
+          "origin",
+          "destination"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    "maps_elevation": {
+      "name": "maps_elevation",
+      "description": "Get elevation data (height above sea level) for specific geographic locations",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "locations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "latitude": {
+                  "type": "number",
+                  "description": "Latitude coordinate"
+                },
+                "longitude": {
+                  "type": "number",
+                  "description": "Longitude coordinate"
+                }
+              },
+              "required": [
+                "latitude",
+                "longitude"
+              ],
+              "additionalProperties": false
+            },
+            "description": "List of locations to get elevation data for"
+          }
+        },
+        "required": [
+          "locations"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    }
+  }
+}

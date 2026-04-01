@@ -1,0 +1,72 @@
+import logging
+import json
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import JsonOutputParser
+from ..config import VLLM_BASE_URL, API_KEY, MODEL_FOR_VERIFIER, TEMPERATURE
+from ..prompts.agent_prompts import VERIFIER_SYSTEM_PROMPT
+
+# Initialize LLM
+llm = ChatOpenAI(
+    model_name=MODEL_FOR_VERIFIER,
+    openai_api_key=API_KEY,
+    base_url=VLLM_BASE_URL,
+    temperature=TEMPERATURE,
+    model_kwargs={"response_format": {"type": "json_object"}}
+)
+
+async def verifier_node(state: dict):
+    """
+    Verifier Node: 
+    Inspects each individual task result from the Answer Agent.
+    Determines if the step is complete or needs re-planning.
+    """
+    
+    package = state.get("latest_verification_package", {})
+    tasks_analysis = package.get("tasks_analysis", [])
+    task_defs = state.get("task_definitions", {})
+    
+    verification_context = []
+    for task in tasks_analysis:
+        t_id = task.get("task_id")
+        verification_context.append({
+            "task_id": t_id,
+            "original_query": task_defs.get(t_id, {}).get("description", "N/A"),
+            "answer_provided": task.get("final_answer", ""),
+            "technical_summary": task.get("summary", "")
+        })
+
+    parser = JsonOutputParser()
+    prompt = ChatPromptTemplate.from_template(VERIFIER_SYSTEM_PROMPT)
+    chain = prompt | llm | parser
+
+    try:
+        # LLM analyzes the tasks and decides which ones are valid
+        result = await chain.ainvoke({
+            "verification_context": json.dumps(verification_context, ensure_ascii=False)
+        })
+
+        # Get IDs of tasks that the LLM marked as 'passed'
+        passed_ids = result.get("passed_task_ids", [])
+        
+        # Filter the original tasks_list to keep only the approved ones
+        approved_tasks = [t for t in tasks_analysis if t.get("task_id") in passed_ids]
+        
+        # Determine overall status
+        # If all tasks passed, status is "pass", else "fail"
+        is_step_complete = len(approved_tasks) == len(tasks_analysis)
+        
+        output = {
+            "verification_status": "pass" if is_step_complete else "fail",
+            "last_failure_reason": result.get("feedback", "") if not is_step_complete else ""
+        }
+
+        # If we have approved tasks, push them to final_history
+        if approved_tasks:
+            output["final_history"] = approved_tasks
+
+        return output
+
+    except Exception as e:
+        logging.error(f"Verifier Error: {e}")
+        return {"verification_status": "error", "last_failure_reason": str(e)}

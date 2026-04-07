@@ -25,6 +25,13 @@ async def verifier_node(state: dict):
     package = state.get("latest_verification_package", {})
     tasks_analysis = package.get("tasks_analysis", [])
     task_defs = state.get("task_definitions", {})
+
+    
+    if not tasks_analysis:
+        return {
+            "verification_status": "fail",
+            "last_failure_reason": "No tasks to verify — execution produced no results."
+        }
     
     verification_context = []
     for task in tasks_analysis:

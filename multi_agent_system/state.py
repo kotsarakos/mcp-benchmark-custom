@@ -58,3 +58,7 @@ class AgentState(TypedDict):
 
     # CHANGE 3: Explicit flag to indicate if all tasks in the step were resolved
     all_parts_found: bool
+
+    # Servers that already failed per task — retrieval must exclude them on replan
+    # task_id -> [server_name, ...]
+    excluded_servers: Dict[str, List[str]]

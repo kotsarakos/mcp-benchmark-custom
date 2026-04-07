@@ -15,14 +15,16 @@ llm = ChatOpenAI(
     model_kwargs={"response_format": {"type": "json_object"}}
 )
 
-async def select_mcp_server(task_id, task_desc, server_index, max_retries=3):
+async def select_mcp_server(task_id, task_desc, server_index, excluded=None, max_retries=3):
     """
     Identifies the appropriate MCP server for a specific task using LLM reasoning.
     """
     parser = JsonOutputParser()
     prompt_tmpl = ChatPromptTemplate.from_template(RETRIEVER_SYSTEM_PROMPT)
     chain = prompt_tmpl | llm | parser
-    
+
+    excluded_list = excluded or []
+
     attempts = 0
     last_error = ""
 
@@ -31,7 +33,8 @@ async def select_mcp_server(task_id, task_desc, server_index, max_retries=3):
             # Asynchronous invocation of the retrieval chain
             selection = await chain.ainvoke({
                 "task_description": task_desc,
-                "server_list": json.dumps(server_index, ensure_ascii=False)
+                "server_list": json.dumps(server_index, ensure_ascii=False),
+                "excluded_servers": json.dumps(excluded_list, ensure_ascii=False)
             })
             
             # Validate if the LLM provided a selected server in the response
@@ -68,7 +71,7 @@ async def retrieval_node(state):
     
     # Verify if there are remaining steps to process
     if idx >= len(steps):
-        return {"selected_server": state.get("selected_server", {})}
+        return {"selected_servers": state.get("selected_servers", {})}
 
     current_step = steps[idx]
 
@@ -82,15 +85,23 @@ async def retrieval_node(state):
             inventory_index = json.load(f).get("available_servers", [])
     except Exception as e:
         print(f"Inventory Load Error: {e}")
-        return {"last_failure_reason": f"Inventory file access error: {str(e)}"}
+        # Fix 7: also set verification_status so graph skips executor/answer/verifier
+        # and goes straight to replan instead of looping
+        return {
+            "last_failure_reason": f"Inventory file access error: {str(e)}",
+            "verification_status": "fail"
+        }
+
+    excluded_servers = state.get("excluded_servers", {})
 
     # Create concurrent coroutines for each task in the current step
     coros = [
         select_mcp_server(
-            tid, 
-            task_definitions[tid]["description"], 
-            inventory_index
-        ) 
+            tid,
+            task_definitions[tid]["description"],
+            inventory_index,
+            excluded=excluded_servers.get(tid, [])
+        )
         for tid in task_ids if tid in task_definitions
     ]
     

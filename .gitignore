@@ -61,3 +61,8 @@ Miniconda3-latest-Linux-x86_64.sh
 *.temp
 .cache/
 mcp_servers/api_key
+
+# Generated output files
+mcp_servers_info.json
+mcp_servers_info.md
+mcp_info_collection.log

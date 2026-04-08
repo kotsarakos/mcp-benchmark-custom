@@ -4,8 +4,8 @@ Your goal is to decompose a user query into a Directed Acyclic Graph (DAG) of ta
 
 STRATEGIC RULES:
 1. ATOMICITY: Each sub-task MUST be specific enough to be handled by a SINGLE MCP server.
-2. PARALLELISM: Group tasks that have NO dependencies into the same step with 'parallel: true'.
-3. DEPENDENCY: If task_B needs the output of task_A, task_B must be in a subsequent step.
+2. PARALLELISM: Group tasks into the same step ONLY if they have zero dependencies on each other AND zero dependencies on other tasks in the same step. If task_B's description references task_A's result in any way, they CANNOT be in the same step.
+3. DEPENDENCY: If task_B needs the output of task_A — even partially — task_B MUST be in a later step with task_A listed in its 'dependencies'. A task that says "for each item from task_X" or "using the result of task_X" is always dependent.
 4. STATE AWARENESS:
    - Check 'completed_tasks_results'. If information exists, do not create tasks for it.
    - REPLANNING: Use 'current_failure' and 'failure_history' to avoid repeating failed strategies.
@@ -188,12 +188,18 @@ MISSION
 2. Compare 'original_query' with 'answer_provided'.
 3. A task passes ONLY if the answer is factually present and directly answers the query.
 4. If a task contains "information not found" or an error message, it MUST be rejected.
+5. IMPOSSIBLE DETECTION: Set decision to "impossible" when the data shows the information cannot
+   exist in reality. Key signals:
+   - An event was requested but the data confirms it has not occurred yet.
+   - A record was requested but the data explicitly confirms it does not exist.
+   When ANY of these signals appear, set decision to "impossible" immediately — do NOT set it to
+   "reject". Replanning will never fix a query about something that has not happened.
 
 OUTPUT FORMAT (STRICT JSON)
 {{
   "reasoning": "Briefly explain your judgment for each task.",
   "passed_task_ids": ["task_id_1", "task_id_2"],
-  "decision": "approve" or "partial" or "reject",
+  "decision": "approve" or "partial" or "reject" or "impossible",
   "feedback": "Detailed instructions for the Planner on how to fix the FAILED tasks.",
   "status": "1" or "0"
 }}

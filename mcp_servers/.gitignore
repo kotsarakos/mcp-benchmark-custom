@@ -18,7 +18,8 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
+api_key
+.gitignore
 # Environment variables
 .env
 .env.local

@@ -270,9 +270,12 @@ async def planner_node(state: dict) -> dict:
             print(f"Reason: {failure_reason}\n")
             state.setdefault("failure_history", []).append(failure_reason)
 
+        # Safety check to prevent infinite replanning loops
         if replans > max_replans:
-            logger.warning("Max replans reached.")
-            return state
+            print(f"\nMAX REPLANS ({max_replans}) REACHED — stopping.\n")
+            return merge_state(state, {
+                "final_output": f"System stopped after {max_replans} failed replans. Last reason: {failure_reason}"
+            })
 
         commit_verified_results(state)
         record_failed_servers(state)

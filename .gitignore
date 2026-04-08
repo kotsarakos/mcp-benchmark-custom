@@ -60,3 +60,4 @@ Miniconda3-latest-Linux-x86_64.sh
 *.tmp
 *.temp
 .cache/
+mcp_servers/api_key

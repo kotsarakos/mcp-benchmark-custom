@@ -12,5 +12,5 @@ TEMPERATURE = 0.0
 # API Key
 API_KEY = "token"
 
-# Inventory with MCP Servers + Tools
-INVENTORY_DIR = Path("mcp_inventory")
+# Inventory with MCP Servers
+INVENTORY_DIR = Path(__file__).parent

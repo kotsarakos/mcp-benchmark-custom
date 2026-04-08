@@ -201,7 +201,7 @@ class MCPServerInfoCollector:
                 # Set 30 second timeout to avoid infinite waiting
                 available_tools = await asyncio.wait_for(
                     single_server_manager.connect_all_servers(), 
-                    timeout=config_loader.get_individual_timeout()
+                    timeout=300
                 )
                 
                 # Organize tool information for this server
@@ -513,6 +513,16 @@ class MCPServerInfoCollector:
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         logger.info(f"Data saved to {filepath.absolute()}")
+
+        # Also save a simplified inventory summary for the Retrieval Agent to use
+        multi_agent_dir = Path(__file__).parent.parent / "multi_agent_system"
+        summary_data = data.get("summary", {})
+        summary_data["available_servers"] = list(data.get("servers", {}).keys())
+
+        summary_path = multi_agent_dir / "inventory_summary.json"
+        with open(summary_path, 'w', encoding='utf-8') as f:
+            json.dump(summary_data, f, indent=2, ensure_ascii=False)
+        logger.info(f"Inventory summary saved to {summary_path.absolute()}")
     
     def save_to_markdown(self, data: Dict[str, Any], filename: str = "mcp_servers_info.md"):
         """Save data to Markdown file"""

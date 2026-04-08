@@ -417,7 +417,7 @@ def get_individual_timeout() -> float:
     Returns:
         Timeout for individual server tests in seconds
     """
-    return config.get('data_collection.individual_timeout', 30.0)
+    return config.get('data_collection.individual_timeout', 300.0)
 
 def get_batch_timeout() -> float:
     """Get batch connection timeout.

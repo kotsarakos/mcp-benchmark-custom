@@ -66,3 +66,6 @@ mcp_servers/api_key
 mcp_servers_info.json
 mcp_servers_info.md
 mcp_info_collection.log
+
+# Runtime cache
+cache/

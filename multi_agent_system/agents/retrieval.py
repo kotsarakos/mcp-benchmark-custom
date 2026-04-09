@@ -6,6 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from ..config import VLLM_BASE_URL, API_KEY, MODEL_FOR_RETRIEVAL, TEMPERATURE, INVENTORY_DIR
 from ..prompts.agent_prompts import RETRIEVER_SYSTEM_PROMPT
+from ..token_tracker import token_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +30,8 @@ async def select_mcp_server(task_id, task_desc, server_index, excluded=None, max
     Returns a tuple of (task_id, {"selected_server": server_name or None")
     """
 
-    parser = JsonOutputParser()
     prompt_tmpl = ChatPromptTemplate.from_template(RETRIEVER_SYSTEM_PROMPT)
-    chain = prompt_tmpl | llm | parser
+    chain = prompt_tmpl | llm
 
     excluded_list = excluded or []
 
@@ -41,11 +41,16 @@ async def select_mcp_server(task_id, task_desc, server_index, excluded=None, max
     while attempts < max_retries:
         try:
             # Asynchronous invocation of the retrieval chain
-            selection = await chain.ainvoke({
-                "task_description": task_desc,
-                "server_list": json.dumps(server_index, ensure_ascii=False),
-                "excluded_servers": json.dumps(excluded_list, ensure_ascii=False),
-            })
+            raw_response = await asyncio.wait_for(
+                chain.ainvoke({
+                    "task_description": task_desc,
+                    "server_list": json.dumps(server_index, ensure_ascii=False),
+                    "excluded_servers": json.dumps(excluded_list, ensure_ascii=False),
+                }),
+                timeout=60
+            )
+            token_tracker.track("retrieval", raw_response)
+            selection = JsonOutputParser().parse(raw_response.content)
             
             # Validate if the LLM provided a selected server in the response
             selected = selection.get("selected_server")

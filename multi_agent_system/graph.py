@@ -7,6 +7,7 @@ from .agents import executor as executor_module
 from .agents.executor import initialize_executor
 from .utils import normalize_state
 from .config import VLLM_BASE_URL, MODEL_FOR_PLANNING, MODEL_FOR_RETRIEVAL, MODEL_FOR_EXECUTOR, MODEL_FOR_ANSWERING, MODEL_FOR_VERIFIER
+from .token_tracker import token_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -110,5 +111,10 @@ async def run_graph(initial_state: Dict[str, Any], max_replans: int = 5) -> Dict
                 break
     finally:
         await _close_mcp_connections()
+
+    # Print token usage summary and attach it to state for programmatic access.
+    print(token_tracker.summary())
+    state["_token_usage"] = token_tracker.get_totals()
+    token_tracker.reset()
 
     return state

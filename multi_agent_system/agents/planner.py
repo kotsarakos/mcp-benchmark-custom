@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from langchain_openai import ChatOpenAI
@@ -5,6 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from ..config import VLLM_BASE_URL, API_KEY, MODEL_FOR_PLANNING, TEMPERATURE, INVENTORY_DIR
 from ..prompts.agent_prompts import PLANNER_SYSTEM_PROMPT, PLANNER_FINAL_SYNTHESIS_PROMPT, PLANNER_REASONING_STEP_PROMPT
+from ..token_tracker import token_tracker
 from ..utils import (
     merge_state,
     commit_verified_results,
@@ -31,7 +33,7 @@ llm = ChatOpenAI(
     model_kwargs={"response_format": {"type": "json_object"}}
 )
 
-def _generate_plan(state: dict) -> dict:
+async def _generate_plan(state: dict) -> dict:
     """
     Call the LLM to create or update the execution plan.
     - Inputs: user query, completed tasks, failure history, available servers
@@ -53,16 +55,21 @@ def _generate_plan(state: dict) -> dict:
         available_servers_str = "[]"
 
     prompt = ChatPromptTemplate.from_template(PLANNER_SYSTEM_PROMPT)
-    chain = prompt | llm | JsonOutputParser()
+    chain = prompt | llm
 
     try:
-        structured_plan = chain.invoke({
-            "input": user_input,
-            "completed_tasks": json.dumps(completed_results),
-            "failure_history": failures_json,
-            "last_failure_reason": last_failure_reason,
-            "available_servers": available_servers_str
-        })
+        raw_response = await asyncio.wait_for(
+            chain.ainvoke({
+                "input": user_input,
+                "completed_tasks": json.dumps(completed_results),
+                "failure_history": failures_json,
+                "last_failure_reason": last_failure_reason,
+                "available_servers": available_servers_str
+            }),
+            timeout=60
+        )
+        token_tracker.track("planner", raw_response)
+        structured_plan = JsonOutputParser().parse(raw_response.content)
 
         task_definitions = structured_plan.get("task_definitions", {})
 
@@ -97,19 +104,24 @@ def _generate_plan(state: dict) -> dict:
         return {"last_failure_reason": f"Planner failed to generate JSON: {str(e)}"}
 
 
-def handle_final_synthesis(state: dict) -> dict:
+async def handle_final_synthesis(state: dict) -> dict:
     """
     Triggered when all steps are complete and verified.
     - Inputs: original query, collected data from all tasks
     - Output: final synthesized answer to the user's query"""
     prompt = ChatPromptTemplate.from_template(PLANNER_FINAL_SYNTHESIS_PROMPT)
-    chain = prompt | llm | JsonOutputParser()
+    chain = prompt | llm
     summary_context = json.dumps(state.get("completed_tasks_results", {}), indent=2)
     try:
-        response = chain.invoke({
-            "original_query": state.get("input"),
-            "collected_data": summary_context
-        })
+        raw_response = await asyncio.wait_for(
+            chain.ainvoke({
+                "original_query": state.get("input"),
+                "collected_data": summary_context
+            }),
+            timeout=60
+        )
+        token_tracker.track("planner", raw_response)
+        response = JsonOutputParser().parse(raw_response.content)
         return {
             "final_output": response.get("answer"),
             "messages": [{"role": "assistant", "content": "Final synthesis generated."}]
@@ -119,7 +131,7 @@ def handle_final_synthesis(state: dict) -> dict:
         return {"last_failure_reason": f"Final synthesis failed: {str(e)}"}
 
 
-def handle_reasoning_step(state: dict) -> dict:
+async def handle_reasoning_step(state: dict) -> dict:
     """
     Planner reasons over collected data and produces a direct answer.
     - Inputs: original query, collected data from completed tasks, current reasoning tasks
@@ -137,14 +149,19 @@ def handle_reasoning_step(state: dict) -> dict:
                 reasoning_tasks[tid] = task_defs[tid].get("description", "")
 
     prompt = ChatPromptTemplate.from_template(PLANNER_REASONING_STEP_PROMPT)
-    chain = prompt | llm | JsonOutputParser()
+    chain = prompt | llm
 
     try:
-        response = chain.invoke({
-            "original_query": state.get("input", ""),
-            "collected_data": json.dumps(completed_results, indent=2, ensure_ascii=False),
-            "reasoning_tasks": json.dumps(reasoning_tasks, indent=2, ensure_ascii=False),
-        })
+        raw_response = await asyncio.wait_for(
+            chain.ainvoke({
+                "original_query": state.get("input", ""),
+                "collected_data": json.dumps(completed_results, indent=2, ensure_ascii=False),
+                "reasoning_tasks": json.dumps(reasoning_tasks, indent=2, ensure_ascii=False),
+            }),
+            timeout=60
+        )
+        token_tracker.track("planner", raw_response)
+        response = JsonOutputParser().parse(raw_response.content)
         return {
             "final_output": response.get("final_answer"),
             "messages": [{"role": "assistant", "content": "Planner resolved reasoning step."}]
@@ -164,7 +181,7 @@ async def _run_pipeline(state: dict) -> dict:
     # Reasoning step — planner handles directly, no tool calls needed
     if is_reasoning_step(state):
         print(f"\n🧠 STEP {current_idx} IS REASONING → Planner handles directly\n")
-        reasoning_updates = handle_reasoning_step(state)
+        reasoning_updates = await handle_reasoning_step(state)
         state = merge_state(state, reasoning_updates)
 
         if state.get("final_output"):
@@ -218,7 +235,7 @@ async def planner_node(state: dict) -> dict:
     # Step 1: Check if all steps completed
     if all_steps_completed(state):
         print("\n✅ ALL STEPS COMPLETED → FINAL SYNTHESIS\n")
-        result = handle_final_synthesis(state)
+        result = await handle_final_synthesis(state)
         return merge_state(state, result)
  
     # Step 2: Impossible 
@@ -234,7 +251,7 @@ async def planner_node(state: dict) -> dict:
                     "final_answer": task.get("final_answer", ""),
                     "summary": task.get("summary", "")
                 }
-        result = handle_final_synthesis(state)
+        result = await handle_final_synthesis(state)
         return merge_state(state, result)
 
     # Step 3: Step passed → advance to next step
@@ -253,7 +270,7 @@ async def planner_node(state: dict) -> dict:
         # Check again after advancing
         if all_steps_completed(state):
             print("\n✅ ALL STEPS COMPLETED → FINAL SYNTHESIS\n")
-            result = handle_final_synthesis(state)
+            result = await handle_final_synthesis(state)
             return merge_state(state, result)
 
         return await _run_pipeline(state)
@@ -285,7 +302,7 @@ async def planner_node(state: dict) -> dict:
         state["all_parts_found"] = False
 
         print("🧠 [PLANNER] Generating new plan...")
-        plan_updates = _generate_plan(state)
+        plan_updates = await _generate_plan(state)
         state = merge_state(state, plan_updates)
         print_plan(state, f"REPLAN #{replans}")
 
@@ -294,7 +311,7 @@ async def planner_node(state: dict) -> dict:
     #  Generate initial plan if no plan exists yet
     if not plan:
         print("🧠 [PLANNER] Generating initial plan...")
-        plan_updates = _generate_plan(state)
+        plan_updates = await _generate_plan(state)
         state = merge_state(state, plan_updates)
         print_plan(state, "INITIAL PLAN")
         return await _run_pipeline(state)

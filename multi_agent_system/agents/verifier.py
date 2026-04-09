@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import json
 from langchain_openai import ChatOpenAI
@@ -5,6 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from ..config import VLLM_BASE_URL, API_KEY, MODEL_FOR_VERIFIER, TEMPERATURE
 from ..prompts.agent_prompts import VERIFIER_SYSTEM_PROMPT
+from ..token_tracker import token_tracker
 
 # Initialize LLM
 llm = ChatOpenAI(
@@ -43,15 +45,19 @@ async def verifier_node(state: dict):
             "technical_summary": task.get("summary", "")
         })
 
-    parser = JsonOutputParser()
     prompt = ChatPromptTemplate.from_template(VERIFIER_SYSTEM_PROMPT)
-    chain = prompt | llm | parser
+    chain = prompt | llm
 
     try:
         # LLM analyzes the tasks and decides which ones are valid
-        result = await chain.ainvoke({
-            "verification_context": json.dumps(verification_context, ensure_ascii=False)
-        })
+        raw_response = await asyncio.wait_for(
+            chain.ainvoke({
+                "verification_context": json.dumps(verification_context, ensure_ascii=False)
+            }),
+            timeout=60
+        )
+        token_tracker.track("verifier", raw_response)
+        result = JsonOutputParser().parse(raw_response.content)
 
         # Get IDs of tasks that the LLM marked as 'passed'
         passed_ids = result.get("passed_task_ids", [])
@@ -60,12 +66,19 @@ async def verifier_node(state: dict):
         approved_tasks = [t for t in tasks_analysis if t.get("task_id") in passed_ids]
         
         # Determine overall status
-        # If all tasks passed, status is "pass", else "fail"
+        decision = result.get("decision", "reject")
         is_step_complete = len(approved_tasks) == len(tasks_analysis)
-        
+
+        if decision == "impossible":
+            verification_status = "impossible"
+        elif is_step_complete:
+            verification_status = "pass"
+        else:
+            verification_status = "fail"
+
         output = {
-            "verification_status": "pass" if is_step_complete else "fail",
-            "last_failure_reason": result.get("feedback", "") if not is_step_complete else ""
+            "verification_status": verification_status,
+            "last_failure_reason": result.get("feedback", "") if verification_status == "fail" else ""
         }
 
         # If we have approved tasks, push them to final_history

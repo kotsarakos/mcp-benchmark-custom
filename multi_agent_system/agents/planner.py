@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import re
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
@@ -32,6 +33,51 @@ llm = ChatOpenAI(
     temperature=TEMPERATURE,
     model_kwargs={"response_format": {"type": "json_object"}}
 )
+
+def _remap_task_ids(plan_updates: dict, existing_completed: dict) -> dict:
+    """
+    Shift all task IDs in a freshly generated plan so they never collide with
+    already-completed task IDs from a previous plan cycle.
+
+    The LLM always starts numbering from task_1. After a replan this would
+    overwrite entries already stored in completed_tasks_results. This function
+    finds the highest existing task number and renumbers every new task above it,
+    also updating dependency references inside the same plan.
+
+    Example: existing tasks task_1..task_3 → new plan task_1,task_2 become task_4,task_5.
+    """
+    max_num = 0
+    for tid in existing_completed:
+        m = re.match(r"task_(\d+)$", tid)
+        if m:
+            max_num = max(max_num, int(m.group(1)))
+
+    if max_num == 0:
+        # No completed tasks yet — nothing to remap.
+        return plan_updates
+
+    old_task_defs = plan_updates.get("task_definitions", {})
+    old_plan = plan_updates.get("plan", [])
+
+    # Stable ordering so the mapping is deterministic.
+    old_ids = sorted(old_task_defs.keys())
+    id_map = {old_id: f"task_{max_num + i + 1}" for i, old_id in enumerate(old_ids)}
+
+    # Rename keys and remap dependency lists inside task_definitions.
+    new_task_defs = {}
+    for old_id, tdef in old_task_defs.items():
+        new_tdef = dict(tdef)
+        new_tdef["dependencies"] = [id_map.get(d, d) for d in tdef.get("dependencies", [])]
+        new_task_defs[id_map[old_id]] = new_tdef
+
+    # Update task lists inside each plan step.
+    new_plan = [
+        {**step, "tasks": [id_map.get(t, t) for t in step.get("tasks", [])]}
+        for step in old_plan
+    ]
+
+    return {**plan_updates, "task_definitions": new_task_defs, "plan": new_plan}
+
 
 async def _generate_plan(state: dict) -> dict:
     """
@@ -238,11 +284,14 @@ async def planner_node(state: dict) -> dict:
         result = await handle_final_synthesis(state)
         return merge_state(state, result)
  
-    # Step 2: Impossible 
+    # Step 2: Impossible — commit best-effort results and continue to next step.
+    # A step is impossible when the verifier determines the task can never be
+    # completed (e.g. "when did Trump die?" — he is alive). Rather than stopping,
+    # we store whatever partial answer the Answer agent produced and advance so
+    # that subsequent steps can still run and the final synthesis has full context.
     if verification_status == "impossible":
         current_idx = state.get("current_step_index", 0)
-        print(f"\n🚫 STEP {current_idx} IMPOSSIBLE — synthesizing answer from collected data\n")
-        # Commit whatever the answer agent found into completed_tasks_results so synthesis can use it
+        print(f"\n🚫 STEP {current_idx} IMPOSSIBLE — committing partial results and continuing\n")
         package = state.get("latest_verification_package", {})
         for task in package.get("tasks_analysis", []):
             t_id = task.get("task_id")
@@ -251,8 +300,15 @@ async def planner_node(state: dict) -> dict:
                     "final_answer": task.get("final_answer", ""),
                     "summary": task.get("summary", "")
                 }
-        result = await handle_final_synthesis(state)
-        return merge_state(state, result)
+        state["verification_status"] = ""
+        state["current_step_index"] = current_idx + 1
+
+        if all_steps_completed(state):
+            print("\n✅ ALL STEPS COMPLETED → FINAL SYNTHESIS\n")
+            result = await handle_final_synthesis(state)
+            return merge_state(state, result)
+
+        return await _run_pipeline(state)
 
     # Step 3: Step passed → advance to next step
     if verification_status == "pass":
@@ -303,6 +359,7 @@ async def planner_node(state: dict) -> dict:
 
         print("🧠 [PLANNER] Generating new plan...")
         plan_updates = await _generate_plan(state)
+        plan_updates = _remap_task_ids(plan_updates, state.get("completed_tasks_results", {}))
         state = merge_state(state, plan_updates)
         print_plan(state, f"REPLAN #{replans}")
 

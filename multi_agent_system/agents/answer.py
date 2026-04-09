@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import json
 from langchain_openai import ChatOpenAI
@@ -5,6 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from ..config import VLLM_BASE_URL, API_KEY, MODEL_FOR_ANSWERING, TEMPERATURE
 from ..prompts.agent_prompts import ANSWER_SYSTEM_PROMPT
+from ..token_tracker import token_tracker
 
 # Initialize LLM 
 llm = ChatOpenAI(
@@ -64,15 +66,17 @@ async def answer_node(state: dict):
             --------------------------------------------
             """
 
-        # Setup LLM Chain
-        parser = JsonOutputParser()
+        # Setup LLM Chain — split before parser to capture token metadata
         prompt_tmpl = ChatPromptTemplate.from_template(ANSWER_SYSTEM_PROMPT)
-        chain = prompt_tmpl | llm | parser 
-        
+        chain = prompt_tmpl | llm
+
         # Invoke LLM to synthesize all raw data into one answer
-        response = await chain.ainvoke({
-            "execution_context": execution_context 
-        })
+        raw_response = await asyncio.wait_for(
+            chain.ainvoke({"execution_context": execution_context}),
+            timeout=60
+        )
+        token_tracker.track("answer", raw_response)
+        response = JsonOutputParser().parse(raw_response.content)
 
         # Prepare the Verification Package
         return {

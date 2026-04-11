@@ -19,19 +19,28 @@ llm = ChatOpenAI(
     model_kwargs={"response_format": {"type": "json_object"}}
 )
 
-async def select_mcp_server(task_id, task_desc, server_index, excluded=None, max_retries=3):
+# Cached chain and parser
+_retrieval_chain = ChatPromptTemplate.from_template(RETRIEVER_SYSTEM_PROMPT) | llm
+_json_parser = JsonOutputParser()
+
+# Load server inventory once at module startup — abort if missing.
+try:
+    with open(INVENTORY_DIR / "inventory_summary.json", "r", encoding="utf-8") as _f:
+        _inventory_index = json.load(_f).get("available_servers", [])
+except Exception as _e:
+    raise RuntimeError(
+        f"Retrieval: could not load the names of MCP servers — system cannot start. Reason: {_e}"
+    ) from _e
+
+async def select_mcp_server(task_id, task_desc, excluded=None, max_retries=3):
     """
     Identifies the appropriate MCP server for a specific task using LLM reasoning.
     - task_id: Unique identifier for the task.
     - task_desc: Description of the task to be routed.
-    - server_index: List of available MCP servers with their capabilities.
     - excluded: List of servers to exclude from selection (already tried and failed).
     - max_retries: Maximum number of retries for LLM invocation in case of failures.
-    Returns a tuple of (task_id, {"selected_server": server_name or None")
+    Returns a tuple of (task_id, {"selected_server": server_name or None})
     """
-
-    prompt_tmpl = ChatPromptTemplate.from_template(RETRIEVER_SYSTEM_PROMPT)
-    chain = prompt_tmpl | llm
 
     excluded_list = excluded or []
 
@@ -42,15 +51,15 @@ async def select_mcp_server(task_id, task_desc, server_index, excluded=None, max
         try:
             # Asynchronous invocation of the retrieval chain
             raw_response = await asyncio.wait_for(
-                chain.ainvoke({
+                _retrieval_chain.ainvoke({
                     "task_description": task_desc,
-                    "server_list": json.dumps(server_index, ensure_ascii=False),
+                    "server_list": json.dumps(_inventory_index, ensure_ascii=False),
                     "excluded_servers": json.dumps(excluded_list, ensure_ascii=False),
                 }),
                 timeout=60
             )
             token_tracker.track("retrieval", raw_response)
-            selection = JsonOutputParser().parse(raw_response.content)
+            selection = _json_parser.parse(raw_response.content)
             
             # Validate if the LLM provided a selected server in the response
             selected = selection.get("selected_server")
@@ -65,7 +74,7 @@ async def select_mcp_server(task_id, task_desc, server_index, excluded=None, max
             last_error = str(e)
             logger.warning("Retrieval attempt %d/%d failed for %s: %s", attempts, max_retries, task_id, last_error)
 
-            # Back off only on rate-limit errors; all other failures retry immediately.
+            # Back off only on rate-limit errors, all other failures retry immediately.
             if attempts < max_retries and "rate" in last_error.lower():
                 await asyncio.sleep(1)
 
@@ -77,7 +86,7 @@ async def select_mcp_server(task_id, task_desc, server_index, excluded=None, max
 
 async def retrieval_node(state: dict) -> dict:
     """
-    Retrieval Agent entry point — called by the Planner
+    Retrieval Agent entry point
 
     Reads the current step from state, launches parallel server-selection
     for each task in that step, and returns the updated server assignments.
@@ -88,6 +97,7 @@ async def retrieval_node(state: dict) -> dict:
     On inventory load failure, returns a "fail" verification_status so the
     Planner triggers a replan rather than proceeding with no server data.
     """
+
     steps = state.get("plan", [])
     task_definitions = state.get("task_definitions", {})
     idx = state.get("current_step_index", 0)
@@ -101,33 +111,17 @@ async def retrieval_node(state: dict) -> dict:
 
     task_ids = current_step.get("tasks", [])
 
-    # Load the server inventory that gives the LLM context for its routing decision.
-    # This file is generated at startup by the inventory collector.
-    try:
-        inventory_path = INVENTORY_DIR / "inventory_summary.json"
-        with open(inventory_path, "r", encoding="utf-8") as f:
-            inventory_index = json.load(f).get("available_servers", [])
-    except Exception as e:
-        logger.error("Failed to load server inventory: %s", e)
-        # Signal failure so the pipeline skips Executor/Answer/Verifier and replans.
-        return {
-            "last_failure_reason": f"Inventory file access error: {str(e)}",
-            "verification_status": "fail",
-        }
-
-    # Per-task exclusion lists — populated by the Planner when a server fails
-    # verification, ensuring the LLM doesn't re-select the same broken server.
+    # Get the list of already excluded servers for this step (if any) to avoid retrying them
     excluded_servers = state.get("excluded_servers", {})
 
     # Build one coroutine per task and run them all concurrently.
-    # Tasks in a parallel step have no dependencies on each other, so this is safe.
     coros = [
         select_mcp_server(
             tid,
             task_definitions[tid]["description"],
-            inventory_index,
             excluded=excluded_servers.get(tid, []),
         )
+        # Iterate only over valid task IDs that are defined in task_definitions to avoid KeyErrors
         for tid in task_ids
         if tid in task_definitions
     ]

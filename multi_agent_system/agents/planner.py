@@ -2,18 +2,23 @@ import asyncio
 import json
 import logging
 import re
+from typing import final
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from ..config import VLLM_BASE_URL, API_KEY, MODEL_FOR_PLANNING, TEMPERATURE, INVENTORY_DIR
-from ..prompts.agent_prompts import PLANNER_SYSTEM_PROMPT, PLANNER_FINAL_SYNTHESIS_PROMPT, PLANNER_REASONING_STEP_PROMPT
+from ..prompts.agent_prompts import (
+    PLANNER_SYSTEM_PROMPT,
+    PLANNER_REPLAN_PROMPT,
+    PLANNER_FINAL_SYNTHESIS_PROMPT,
+    PLANNER_REASONING_STEP_PROMPT,
+)
 from ..token_tracker import token_tracker
 from ..utils import (
     merge_state,
     commit_verified_results,
     refresh_task_descriptions,
     record_failed_servers,
-    all_steps_completed,
     is_reasoning_step,
     print_plan,
     print_step_execution,
@@ -34,43 +39,63 @@ llm = ChatOpenAI(
     model_kwargs={"response_format": {"type": "json_object"}}
 )
 
+# Cached prompt chains and parser
+_plan_chain = ChatPromptTemplate.from_template(PLANNER_SYSTEM_PROMPT) | llm
+_replan_chain = ChatPromptTemplate.from_template(PLANNER_REPLAN_PROMPT) | llm
+_reasoning_chain = ChatPromptTemplate.from_template(PLANNER_REASONING_STEP_PROMPT) | llm
+_synthesis_chain = ChatPromptTemplate.from_template(PLANNER_FINAL_SYNTHESIS_PROMPT) | llm
+_json_parser = JsonOutputParser()
+
+# Load server inventory once at module startup
+try:
+    with open(INVENTORY_DIR / "inventory_summary.json", "r", encoding="utf-8") as _f:
+        _available_servers_str = json.dumps(
+            json.load(_f).get("available_servers", []), ensure_ascii=False
+        )
+except Exception as _e:
+    raise RuntimeError(
+        f"Planner: could not load the names of MCP servers — system cannot start. Reason: {_e}"
+    ) from _e
+
+
 def _remap_task_ids(plan_updates: dict, existing_completed: dict) -> dict:
     """
-    Shift all task IDs in a freshly generated plan so they never collide with
-    already-completed task IDs from a previous plan cycle.
-
-    The LLM always starts numbering from task_1. After a replan this would
-    overwrite entries already stored in completed_tasks_results. This function
-    finds the highest existing task number and renumbers every new task above it,
-    also updating dependency references inside the same plan.
-
-    Example: existing tasks task_1..task_3 → new plan task_1,task_2 become task_4,task_5.
+    Rename new task IDs that collide with already-completed ones.
+    - Failed tasks keep their original ID. 
+    - Only verified results get a new ID.
+    Dependency references are updated to match any renames.
     """
+    if not existing_completed:
+        return plan_updates
+
+    old_task_defs = plan_updates.get("task_definitions", {})
+    old_plan = plan_updates.get("plan", [])
+
+    # Find highest existing numeric task ID for safe new names.
     max_num = 0
     for tid in existing_completed:
         m = re.match(r"task_(\d+)$", tid)
         if m:
             max_num = max(max_num, int(m.group(1)))
 
-    if max_num == 0:
-        # No completed tasks yet — nothing to remap.
+    # Only rename IDs that collide with completed results.
+    id_map = {}
+    for old_id in old_task_defs:
+        if old_id in existing_completed:
+            max_num += 1
+            id_map[old_id] = f"task_{max_num}"
+
+    if not id_map:
         return plan_updates
 
-    old_task_defs = plan_updates.get("task_definitions", {})
-    old_plan = plan_updates.get("plan", [])
-
-    # Stable ordering so the mapping is deterministic.
-    old_ids = sorted(old_task_defs.keys())
-    id_map = {old_id: f"task_{max_num + i + 1}" for i, old_id in enumerate(old_ids)}
-
-    # Rename keys and remap dependency lists inside task_definitions.
+    # Apply renames to task definitions and their dependency lists.
     new_task_defs = {}
     for old_id, tdef in old_task_defs.items():
         new_tdef = dict(tdef)
         new_tdef["dependencies"] = [id_map.get(d, d) for d in tdef.get("dependencies", [])]
-        new_task_defs[id_map[old_id]] = new_tdef
+        new_task_defs[id_map.get(old_id, old_id)] = new_tdef
 
-    # Update task lists inside each plan step.
+    # Apply renames to plan step task lists.
     new_plan = [
         {**step, "tasks": [id_map.get(t, t) for t in step.get("tasks", [])]}
         for step in old_plan
@@ -79,74 +104,97 @@ def _remap_task_ids(plan_updates: dict, existing_completed: dict) -> dict:
     return {**plan_updates, "task_definitions": new_task_defs, "plan": new_plan}
 
 
-async def _generate_plan(state: dict) -> dict:
+async def _generate_plan(state: dict, is_replan: bool = False) -> dict:
     """
-    Call the LLM to create or update the execution plan.
-    - Inputs: user query, completed tasks, failure history, available servers
-    - Output: structured plan with steps, tasks, dependencies, and task types
+    Ask the Planner for the single next step to execute.
+    When is_replan is True, uses the replan prompt with failure context.
+    Else uses the normal prompt for the next step.
+    Returns either the next step or {"_done": True} when all data is collected.
     """
     user_input = state.get("input", "")
     completed_results = state.get("completed_tasks_results", {})
-    failures = state.get("failure_history", [])
-    failures_json = json.dumps(failures, ensure_ascii=False) if failures else "[]"
-    last_failure_reason = state.get("last_failure_reason", "")
 
-    try:
-        inventory_path = INVENTORY_DIR / "inventory_summary.json"
-        with open(inventory_path, "r", encoding="utf-8") as f:
-            available_servers = json.load(f).get("available_servers", [])
-        available_servers_str = json.dumps(available_servers, ensure_ascii=False)
-    except Exception as e:
-        print(f"Planner: could not load inventory ({e}), continuing without it")
-        available_servers_str = "[]"
-
-    prompt = ChatPromptTemplate.from_template(PLANNER_SYSTEM_PROMPT)
-    chain = prompt | llm
+    if is_replan:
+        failures = state.get("failure_history", [])
+        chain = _replan_chain
+        chain_inputs = {
+            "input": user_input,
+            "completed_tasks": json.dumps(completed_results),
+            "last_failure_reason": state.get("last_failure_reason", ""),
+            "failure_history": json.dumps(failures, ensure_ascii=False) if failures else "[]",
+            "available_servers": _available_servers_str,
+        }
+    else:
+        chain = _plan_chain
+        chain_inputs = {
+            "input": user_input,
+            "completed_tasks": json.dumps(completed_results),
+            "available_servers": _available_servers_str,
+        }
 
     try:
         raw_response = await asyncio.wait_for(
-            chain.ainvoke({
-                "input": user_input,
-                "completed_tasks": json.dumps(completed_results),
-                "failure_history": failures_json,
-                "last_failure_reason": last_failure_reason,
-                "available_servers": available_servers_str
-            }),
-            timeout=60
+            chain.ainvoke(chain_inputs),
+            timeout=120
         )
         token_tracker.track("planner", raw_response)
-        structured_plan = JsonOutputParser().parse(raw_response.content)
+        structured = _json_parser.parse(raw_response.content)
 
-        task_definitions = structured_plan.get("task_definitions", {})
+        if structured.get("done"):
+            return {"_done": True}
 
-        # Ensure every task has task_type
+        step = structured.get("step", {})
+        task_definitions = structured.get("task_definitions", {})
+
+        # Filter out tasks that are already completed
+        # Select the ids of tasks that are already completed, and remove them from the new plan and definitions.
+        already_done = set(completed_results.keys())
+        task_definitions = {
+            tid: tdef for tid, tdef in task_definitions.items()
+            if tid not in already_done
+        }
+        filtered_tasks = [t for t in step.get("tasks", []) if t not in already_done]
+        if not filtered_tasks:
+            return {"_done": True}
+        step = {**step, "tasks": filtered_tasks}
+
+        # Remove tasks whose dependencies are in the same step (they can't see
+        # each other's results). They will be scheduled in a future step instead.
+        step_task_set = set(filtered_tasks)
+        offending = set()
+        for tid in filtered_tasks:
+            for dep in task_definitions.get(tid, {}).get("dependencies", []):
+                if dep in step_task_set and dep not in already_done:
+                    logger.warning(
+                        "Task '%s' depends on '%s' which is in the same step -- removing from this step.",
+                        tid, dep
+                    )
+                    offending.add(tid)
+        if offending:
+            filtered_tasks = [t for t in filtered_tasks if t not in offending]
+            task_definitions = {
+                tid: tdef for tid, tdef in task_definitions.items()
+                if tid not in offending
+            }
+            step = {**step, "tasks": filtered_tasks}
+            if not filtered_tasks:
+                return {"_done": True}
+
+        # Default missing task_type to "tool".
         for tid, tdef in task_definitions.items():
             if "task_type" not in tdef:
-                print(f"Warning: task '{tid}' missing task_type, defaulting to 'tool'")
+                logger.warning("Task '%s' missing task_type, defaulting to 'tool'", tid)
                 tdef["task_type"] = "tool"
 
-        # Inject completed dependency results into descriptions
-        for tid, tdef in task_definitions.items():
-            deps = tdef.get("dependencies", [])
-            context = [
-                f"{dep}: {completed_results[dep]['final_answer']}"
-                for dep in deps
-                if dep in completed_results and completed_results[dep].get("final_answer")
-            ]
-            if context:
-                tdef["description"] += "\n\nResults from previous tasks:\n" + "\n".join(context)
-
-        # Update the State
         return {
-            "plan": structured_plan.get("plan", []),
+            "plan": [step],
             "task_definitions": task_definitions,
             "current_step_index": 0,
             "last_failure_reason": "",
-            "messages": [{"role": "assistant", "content": "Strategic execution plan updated."}]
         }
 
     except Exception as e:
-        print(f"Planner Error: {e}")
+        logger.error("Planner failed to generate plan: %s", e)
         return {"last_failure_reason": f"Planner failed to generate JSON: {str(e)}"}
 
 
@@ -154,35 +202,41 @@ async def handle_final_synthesis(state: dict) -> dict:
     """
     Triggered when all steps are complete and verified.
     - Inputs: original query, collected data from all tasks
-    - Output: final synthesized answer to the user's query"""
-    prompt = ChatPromptTemplate.from_template(PLANNER_FINAL_SYNTHESIS_PROMPT)
-    chain = prompt | llm
+    - Output: final synthesized answer to the user's query
+    """
+
     summary_context = json.dumps(state.get("completed_tasks_results", {}), indent=2)
     try:
         raw_response = await asyncio.wait_for(
-            chain.ainvoke({
+            _synthesis_chain.ainvoke({
                 "original_query": state.get("input"),
                 "collected_data": summary_context
             }),
-            timeout=60
+            timeout=120
         )
         token_tracker.track("planner", raw_response)
-        response = JsonOutputParser().parse(raw_response.content)
+        response = _json_parser.parse(raw_response.content)
         return {
             "final_output": response.get("answer"),
             "messages": [{"role": "assistant", "content": "Final synthesis generated."}]
         }
     except Exception as e:
-        print(f"Final Synthesis Error: {e}")
-        return {"last_failure_reason": f"Final synthesis failed: {str(e)}"}
+        logger.error("Final synthesis failed: %s", e)
+        # Always set final_output to prevent an infinite loop in run_graph.
+        collected = state.get("completed_tasks_results", {})
+        fallback = "; ".join(
+            v.get("final_answer", "") for v in collected.values() if v.get("final_answer")
+        ) or "Final synthesis failed and no task answers were collected."
+        return {"final_output": fallback}
 
 
 async def handle_reasoning_step(state: dict) -> dict:
     """
-    Planner reasons over collected data and produces a direct answer.
+    Planner reasons over collected data and produces a reasoning step.
     - Inputs: original query, collected data from completed tasks, current reasoning tasks
-    - Output: final answer for the reasoning step
+    - Output: reasoning step
     """
+
     plan = state.get("plan", [])
     idx = state.get("current_step_index", 0)
     task_defs = state.get("task_definitions", {})
@@ -194,39 +248,42 @@ async def handle_reasoning_step(state: dict) -> dict:
             if tid in task_defs:
                 reasoning_tasks[tid] = task_defs[tid].get("description", "")
 
-    prompt = ChatPromptTemplate.from_template(PLANNER_REASONING_STEP_PROMPT)
-    chain = prompt | llm
-
     try:
         raw_response = await asyncio.wait_for(
-            chain.ainvoke({
+            _reasoning_chain.ainvoke({
                 "original_query": state.get("input", ""),
                 "collected_data": json.dumps(completed_results, indent=2, ensure_ascii=False),
                 "reasoning_tasks": json.dumps(reasoning_tasks, indent=2, ensure_ascii=False),
             }),
-            timeout=60
+            timeout=120
         )
         token_tracker.track("planner", raw_response)
-        response = JsonOutputParser().parse(raw_response.content)
+        response = _json_parser.parse(raw_response.content)
         return {
             "final_output": response.get("final_answer"),
             "messages": [{"role": "assistant", "content": "Planner resolved reasoning step."}]
         }
     except Exception as e:
-        print(f"Planner Reasoning Error: {e}")
-        return {"last_failure_reason": f"Planner reasoning failed: {str(e)}"}
+        logger.error("Planner reasoning step failed: %s", e)
+        # Set final_output to prevent an infinite loop
+        collected = state.get("completed_tasks_results", {})
+        fallback = "; ".join(
+            v.get("final_answer", "") for v in collected.values() if v.get("final_answer")
+        ) or "Reasoning step failed and no task answers were collected."
+        return {"final_output": fallback}
 
 
 async def _run_pipeline(state: dict) -> dict:
     """
-    Execute the fixed retrieval → executor → answer → verifier pipeline for the current step.
+    Run the pipeline for the current step.
+    Short-circuits early if any stage fails.
     """
     current_idx = state.get("current_step_index", 0)
     print_step_execution(state)
 
-    # Reasoning step — planner handles directly, no tool calls needed
+    # Reasoning tasks bypass the tool pipeline entirely.
     if is_reasoning_step(state):
-        print(f"\n🧠 STEP {current_idx} IS REASONING → Planner handles directly\n")
+        logger.info("Step %d is a reasoning step -- Planner handles directly.", current_idx)
         reasoning_updates = await handle_reasoning_step(state)
         state = merge_state(state, reasoning_updates)
 
@@ -239,59 +296,101 @@ async def _run_pipeline(state: dict) -> dict:
                 }
             state["current_step_index"] = current_idx + 1
 
-        print("\n🏁 FINAL OUTPUT READY (via Planner reasoning)\n")
+        logger.info("Final output ready (via Planner reasoning).")
         return state
 
-    # Fixed pipeline
-    print("🔍 [RETRIEVAL] Selecting MCP server...")
+    # Stage 1: Retrieval -- select MCP servers for each task.
+    logger.info("[RETRIEVAL] Selecting MCP server...")
     retrieval_updates = await retrieval_node(state)
     state = merge_state(state, retrieval_updates)
 
-    if state.get("verification_status") != "fail":
-        print("⚙️  [EXECUTOR] Calling MCP tool...")
-        executor_updates = await executor_node(state)
-        state = merge_state(state, executor_updates)
+    # Stage 2: Executor -- call the selected MCP tools.
+    logger.info("[EXECUTOR] Calling MCP tools...")
+    executor_updates = await executor_node(state)
+    state = merge_state(state, executor_updates)
 
-        print("📝 [ANSWER] Structuring results...")
-        answer_updates = await answer_node(state)
-        state = merge_state(state, answer_updates)
+    if executor_updates.get("errors"):
+        logger.warning("Executor returned errors -- skipping answer/verifier.")
+        state["verification_status"] = "fail"
+        state["last_failure_reason"] = "; ".join(executor_updates["errors"])
+        return state
 
-        print("🔎 [VERIFIER] Checking answers...")
-        verifier_updates = await verifier_node(state)
-        state = merge_state(state, verifier_updates)
-    else:
-        print(f"❌ [RETRIEVAL] Failed for step {current_idx}, skipping pipeline\n")
+    # Stage 3: Answer -- structure raw results into clean answers.
+    logger.info("[ANSWER] Structuring results...")
+    answer_updates = await answer_node(state)
+    state = merge_state(state, answer_updates)
+
+    if answer_updates.get("errors"):
+        logger.warning("Answer agent returned errors -- skipping verifier.")
+        state["verification_status"] = "fail"
+        state["last_failure_reason"] = "; ".join(answer_updates["errors"])
+        return state
+
+    # Stage 4: Verifier -- check answer quality and decide pass/fail.
+    logger.info("[VERIFIER] Checking answers...")
+    verifier_updates = await verifier_node(state)
+    state = merge_state(state, verifier_updates)
 
     return state
 
 
 async def planner_node(state: dict) -> dict:
     """
-    The Planner is the leader of the multi-agent system.
-    Each call makes one high-level decision:
-      - No plan yet       → generate initial plan → run pipeline
-      - Step passed       → advance step → run pipeline (or synthesize if done)
-      - All steps done    → final synthesis
-      - Step failed       → replan → run pipeline
+    Main entry point for the planner. Called once per iteration of run_graph.
+    Decision tree:
+      - No plan yet     -> generate first step, run pipeline
+      - Step passed     -> commit results, generate next step (or synthesize)
+      - Step impossible -> commit partial results, generate next step (or synthesize)
+      - Step failed     -> replan same step, run pipeline
     """
+
     verification_status = state.get("verification_status", "")
     plan = state.get("plan", [])
     max_replans = state.get("_max_replans", 5)
 
-    # Step 1: Check if all steps completed
-    if all_steps_completed(state):
-        print("\n✅ ALL STEPS COMPLETED → FINAL SYNTHESIS\n")
-        result = await handle_final_synthesis(state)
-        return merge_state(state, result)
- 
-    # Step 2: Impossible — commit best-effort results and continue to next step.
-    # A step is impossible when the verifier determines the task can never be
-    # completed (e.g. "when did Trump die?" — he is alive). Rather than stopping,
-    # we store whatever partial answer the Answer agent produced and advance so
-    # that subsequent steps can still run and the final synthesis has full context.
+    # No plan yet: generate and run the first step
+    if not plan:
+        state["_global_step"] = 0
+        logger.info("[PLANNER] Planning first step...")
+        plan_updates = await _generate_plan(state)
+        if plan_updates.get("_done"):
+            logger.info("[PLANNER] Nothing to do -- FINAL SYNTHESIS")
+            result = await handle_final_synthesis(state)
+            return merge_state(state, result)
+        plan_updates = _remap_task_ids(plan_updates, state.get("completed_tasks_results", {}))
+        state = merge_state(state, plan_updates)
+        print_plan(state, f"STEP {state['_global_step']}")
+        return await _run_pipeline(state)
+
+    # Step passed: commit results, plan next step
+    if verification_status == "pass":
+        global_step = state.get("_global_step", 0)
+        logger.info("STEP %d PASSED", global_step)
+        state["_replans"] = 0
+        commit_verified_results(state)
+
+        state["last_failure_reason"] = ""
+        state["verification_status"] = ""
+        state["plan"] = []
+        state["current_step_index"] = 0
+        state["_global_step"] = global_step + 1
+
+        logger.info("[PLANNER] Planning next step...")
+        plan_updates = await _generate_plan(state)
+        if plan_updates.get("_done"):
+            logger.info("[PLANNER] All data collected -- FINAL SYNTHESIS")
+            result = await handle_final_synthesis(state)
+            return merge_state(state, result)
+        plan_updates = _remap_task_ids(plan_updates, state.get("completed_tasks_results", {}))
+        state = merge_state(state, plan_updates)
+        refresh_task_descriptions(state)
+        print_plan(state, f"STEP {state['_global_step']}")
+        return await _run_pipeline(state)
+
+    # Step impossible: commit partial results, plan next step
     if verification_status == "impossible":
-        current_idx = state.get("current_step_index", 0)
-        print(f"\n🚫 STEP {current_idx} IMPOSSIBLE — committing partial results and continuing\n")
+        global_step = state.get("_global_step", 0)
+        logger.info("STEP %d IMPOSSIBLE -- committing partial results", global_step)
         package = state.get("latest_verification_package", {})
         for task in package.get("tasks_analysis", []):
             t_id = task.get("task_id")
@@ -301,78 +400,59 @@ async def planner_node(state: dict) -> dict:
                     "summary": task.get("summary", "")
                 }
         state["verification_status"] = ""
-        state["current_step_index"] = current_idx + 1
+        state["plan"] = []
+        state["current_step_index"] = 0
+        state["_global_step"] = global_step + 1
 
-        if all_steps_completed(state):
-            print("\n✅ ALL STEPS COMPLETED → FINAL SYNTHESIS\n")
+        logger.info("[PLANNER] Planning next step after impossible...")
+        plan_updates = await _generate_plan(state)
+        if plan_updates.get("_done"):
+            logger.info("[PLANNER] All data collected -- FINAL SYNTHESIS")
             result = await handle_final_synthesis(state)
             return merge_state(state, result)
-
-        return await _run_pipeline(state)
-
-    # Step 3: Step passed → advance to next step
-    if verification_status == "pass":
-        current_idx = state.get("current_step_index", 0)
-        print(f"✅ STEP {current_idx} PASSED\n")
-
-        state["_replans"] = 0  # reset replan counter on success
-        commit_verified_results(state)
+        plan_updates = _remap_task_ids(plan_updates, state.get("completed_tasks_results", {}))
+        state = merge_state(state, plan_updates)
         refresh_task_descriptions(state)
-
-        state["last_failure_reason"] = ""
-        state["verification_status"] = ""
-        state["current_step_index"] = current_idx + 1
-
-        # Check again after advancing
-        if all_steps_completed(state):
-            print("\n✅ ALL STEPS COMPLETED → FINAL SYNTHESIS\n")
-            result = await handle_final_synthesis(state)
-            return merge_state(state, result)
-
+        print_plan(state, f"STEP {state['_global_step']} (after impossible)")
         return await _run_pipeline(state)
 
-    #  Step 4: Step failed → replan
-    if verification_status == "fail":
+    # Step failed or error: replan the same step
+    if verification_status in ("fail", "error"):
         state["_replans"] = state.get("_replans", 0) + 1
         replans = state["_replans"]
-        current_idx = state.get("current_step_index", 0)
-        print(f"❌ STEP {current_idx} FAILED → REPLAN #{replans}\n")
+        global_step = state.get("_global_step", 0)
+        logger.warning("STEP %d FAILED -- REPLAN #%d", global_step, replans)
 
         failure_reason = state.get("last_failure_reason", "")
         if failure_reason:
-            print(f"Reason: {failure_reason}\n")
-            state.setdefault("failure_history", []).append(failure_reason)
+            logger.warning("Failure reason: %s", failure_reason)
+            history = state.setdefault("failure_history", [])
+            if not history or history[-1] != failure_reason:
+                history.append(failure_reason)
 
-        # Safety check to prevent infinite replanning loops
         if replans > max_replans:
-            print(f"\nMAX REPLANS ({max_replans}) REACHED — stopping.\n")
+            logger.error("MAX REPLANS (%d) REACHED -- stopping.", max_replans)
             return merge_state(state, {
                 "final_output": f"System stopped after {max_replans} failed replans. Last reason: {failure_reason}"
             })
 
         commit_verified_results(state)
         record_failed_servers(state)
-
+        state["plan"] = []
         state["current_step_index"] = 0
         state["verification_status"] = ""
         state["all_parts_found"] = False
 
-        print("🧠 [PLANNER] Generating new plan...")
-        plan_updates = await _generate_plan(state)
+        logger.info("[PLANNER] Replanning current step...")
+        plan_updates = await _generate_plan(state, is_replan=True)
+        if plan_updates.get("_done"):
+            result = await handle_final_synthesis(state)
+            return merge_state(state, result)
         plan_updates = _remap_task_ids(plan_updates, state.get("completed_tasks_results", {}))
         state = merge_state(state, plan_updates)
-        print_plan(state, f"REPLAN #{replans}")
-
+        print_plan(state, f"STEP {state.get('_global_step', 1)} -- REPLAN #{replans}")
         return await _run_pipeline(state)
 
-    #  Generate initial plan if no plan exists yet
-    if not plan:
-        print("🧠 [PLANNER] Generating initial plan...")
-        plan_updates = await _generate_plan(state)
-        state = merge_state(state, plan_updates)
-        print_plan(state, "INITIAL PLAN")
-        return await _run_pipeline(state)
-
-    # Planner has a plan but no verification status → start pipeline for current step
-    print("🧠 [PLANNER] Resuming pipeline...")
+    # Has a plan but no verification status: resume pipeline
+    logger.info("[PLANNER] Resuming pipeline...")
     return await _run_pipeline(state)

@@ -272,10 +272,9 @@ MISSION
 
 OUTPUT FORMAT (STRICT JSON)
 {{
-  "reasoning": "Briefly explain your judgment for each task.",
   "passed_task_ids": ["task_id_1", "task_id_2"],
   "decision": "approve" or "partial" or "reject" or "impossible",
-  "feedback": "Detailed instructions for the Planner on how to fix the FAILED tasks.",
+  "feedback": "For each task: state PASS or FAIL with a brief reason. For failed tasks, include actionable instructions for the Planner on how to fix them.",
   "status": "1" or "0"
 }}
 """

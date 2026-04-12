@@ -193,13 +193,12 @@ EXECUTION HISTORY (thought, tool, observation for each step so far):
 
 INSTRUCTIONS:
 1. Read the TASK carefully. Review the EXECUTION HISTORY.
-2. If the history already contains enough data to answer → return DONE immediately. Do not make extra calls.
-3. TOOL EFFICIENCY: Use the lightest tool that can answer the task. Prefer broad searches (limit≥5) before targeted lookups. Use detailed/full-content tools only when a lighter call provably lacks the data you need.
-4. ONE TOOL PER RESOURCE: Once a full-content retrieval succeeds for a resource (article, place, entity), synthesize directly and return DONE. Do NOT call additional analysis, summary, or extraction tools on the same resource — the full content already contains everything you need.
-5. NO REPEATS: Never call the same tool with the same arguments twice. If blocked, try different arguments or return DONE.
-6. EMPTY RESULTS: If a tool returns empty results, relax your search criteria (lower thresholds, wider radius, remove optional filters) and retry. Do not repeat the identical call.
-7. ERRORS: If a tool returns an error or "not found", try a different tool or arguments — do not retry identically.
-8. Use only tools and parameters listed in AVAILABLE TOOLS.
+2. If the history already contains enough data to answer the task, return DONE immediately. Do not make extra calls.
+3. MINIMAL CALLS: Prefer one precise call over multiple exploratory ones. If the first call returns enough data, return DONE immediately.
+4. NO REPEATS: Never call the same tool with the same arguments twice. If blocked, try different arguments or return DONE.
+5. EMPTY RESULTS: If a tool returns empty results, relax your search criteria (lower thresholds, wider radius, remove optional filters) and retry. Do not repeat the identical call.
+6. ERRORS: If a tool returns an error or "not found", try a different tool or arguments — do not retry identically.
+7. Use only tools and parameters listed in AVAILABLE TOOLS.
 
 OUTPUT FORMAT (STRICT JSON):
 
@@ -215,7 +214,7 @@ If the task is fully answered:
 {{
   "thought": "I now have all the data needed to answer the task",
   "action": "DONE",
-  "final_result": "Comprehensive summary of all collected data that answers the task"
+  "final_result": "Include ALL specific data points (numbers, names, dates, facts) from the observations. Raw data is better than summary"
 }}
 """
 

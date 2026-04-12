@@ -50,7 +50,6 @@ async def answer_node(state: dict):
                 }
             }
 
-        # Build the Execution Context (The combined string for the LLM)
         # We group each task's question with its raw output
         execution_context = ""
         for t_id, t_output in latest_results.items():
@@ -66,7 +65,7 @@ async def answer_node(state: dict):
             --------------------------------------------
             """
 
-        # Setup LLM Chain — split before parser to capture token metadata
+        # Setup Chain
         prompt_tmpl = ChatPromptTemplate.from_template(ANSWER_SYSTEM_PROMPT)
         chain = prompt_tmpl | llm
 
@@ -75,6 +74,7 @@ async def answer_node(state: dict):
             chain.ainvoke({"execution_context": execution_context}),
             timeout=60
         )
+        
         token_tracker.track("answer", raw_response)
         response = JsonOutputParser().parse(raw_response.content)
 

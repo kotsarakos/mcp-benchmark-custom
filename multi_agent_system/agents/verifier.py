@@ -49,13 +49,14 @@ async def verifier_node(state: dict):
     chain = prompt | llm
 
     try:
-        # LLM analyzes the tasks and decides which ones are valid
+        # Verifier analyzes the tasks and decides which ones are valid
         raw_response = await asyncio.wait_for(
             chain.ainvoke({
                 "verification_context": json.dumps(verification_context, ensure_ascii=False)
             }),
             timeout=60
         )
+        
         token_tracker.track("verifier", raw_response)
         result = JsonOutputParser().parse(raw_response.content)
 

@@ -262,8 +262,13 @@ MISSION
 2. Compare 'original_query' with 'answer_provided'.
 3. A task passes ONLY if the answer is factually present and directly answers the query.
 4. If a task contains "information not found" or an error message, it MUST be rejected.
-5. LOGICAL CONSISTENCY: Check whether the answer is internally consistent with the task's intent.
-5. IMPOSSIBLE DETECTION: Set decision to "impossible" when the data shows the information cannot
+5. IMPLICIT ANSWERS: Accept answers that satisfy the query by implication — do NOT demand a
+   specific phrasing. Examples:
+   - "How many children?" → listing N names implicitly answers the count (count = N). PASS.
+   - "What is the capital?" → naming the city directly answers it, even without "the capital is". PASS.
+   - "Does X exist?" → describing X in detail implies it exists. PASS.
+6. LOGICAL CONSISTENCY: Check whether the answer is internally consistent with the task's intent.
+7. IMPOSSIBLE DETECTION: Set decision to "impossible" when the data shows the information cannot
    exist in reality. Key signals:
    - An event was requested but the data confirms it has not occurred yet.
    - A record was requested but the data explicitly confirms it does not exist.

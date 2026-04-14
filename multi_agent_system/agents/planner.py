@@ -432,9 +432,22 @@ async def planner_node(state: dict) -> dict:
 
         if replans > max_replans:
             logger.error("MAX REPLANS (%d) REACHED -- stopping.", max_replans)
-            return merge_state(state, {
-                "final_output": f"System stopped after {max_replans} failed replans. Last reason: {failure_reason}"
-            })
+            # Try to synthesize from whatever has been collected so far
+            collected = state.get("completed_tasks_results", {})
+            if collected:
+                logger.info("Attempting partial synthesis from %d completed tasks.", len(collected))
+                try:
+                    result = await handle_final_synthesis(state)
+                    partial = result.get("final_output", "")
+                    if partial:
+                        return merge_state(state, {"final_output": partial})
+                except Exception as e:
+                    logger.warning("Partial synthesis failed: %s", e)
+            # Last resort: concatenate whatever answers exist
+            fallback = "; ".join(
+                v.get("final_answer", "") for v in collected.values() if v.get("final_answer")
+            ) or f"System stopped after {max_replans} failed replans. Last reason: {failure_reason}"
+            return merge_state(state, {"final_output": fallback})
 
         commit_verified_results(state)
         record_failed_servers(state)

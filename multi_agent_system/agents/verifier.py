@@ -79,7 +79,7 @@ async def verifier_node(state: dict):
 
         output = {
             "verification_status": verification_status,
-            "last_failure_reason": result.get("feedback", "") if verification_status == "fail" else ""
+            "last_failure_reason": str(result.get("feedback", "")) if verification_status == "fail" else ""
         }
 
         # If we have approved tasks, push them to final_history

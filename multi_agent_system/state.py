@@ -25,40 +25,39 @@ class AgentState(TypedDict):
     # Selected MCP Servver for a Task
     selected_servers: Dict[str, Any]
 
-    # --- EXECUTION TRACKING ---
+    # Completed Tasks only
     completed_tasks_results: Dict[str, Any]
+
+    # Verified task Ids (PASS TASKS)
     finished_task_ids: List[str]
+
+    # The step that we are
     current_step_index: int
     
-    # --- MESSAGE HISTORY ---
+    # Messages 
     messages: Annotated[List[Dict[str, Any]], operator.add]
     
-    
-    # CHANGE 1: Use Annotated and operator.add to accumulate errors over time
+    # Errors over time
+    # Accumulated agent errors across the run
     errors: Annotated[List[str], operator.add]
-    
-    retry_count: int
 
-    # --- FINAL OUTPUT ---
+    # Final answer returned to the caller once the query is resolved
     final_output: Optional[str]
 
-    # --- NEW: TEMPORARY EXECUTION OUTPUT ---
+    # Raw executor outputs for the current step (overwritten each step)
     latest_execution_results: Dict[str, Any]
 
-    # --- NEW: VERIFICATION PACKAGE ---
+    # Answer + verifier data for the current step (overwritten each step)
     latest_verification_package: Dict[str, Any]
 
-    # --- NEW: PERMANENT VERIFIED HISTORY ---
-    # CHANGE 2: Use Annotated and operator.add so that each verified 
-    # task list from the Answer Agent is appended to the history.
+    # All verified task records across all steps
     final_history: Annotated[List[Dict[str, Any]], operator.add]
-    
-    # Status of the last verification ("pass" or "fail")
+
+    # Verifier decision for the last step: "approve", "partial", "reject", "impossible"
     verification_status: str
 
-    # CHANGE 3: Explicit flag to indicate if all tasks in the step were resolved
+    # True if the Answer agent found data for every task in the current step
     all_parts_found: bool
 
-    # Servers that already failed per task — retrieval must exclude them on replan
-    # task_id -> [server_name, ...]
+    # Servers banned per task after repeated non-transient failures. task_id -> [server_name]
     excluded_servers: Dict[str, List[str]]

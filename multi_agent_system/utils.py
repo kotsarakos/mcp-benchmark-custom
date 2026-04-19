@@ -74,7 +74,6 @@ def normalize_state(state: Dict[str, Any]) -> Dict[str, Any]:
     normalized.setdefault("current_step_index", 0)
     normalized.setdefault("messages", [])
     normalized.setdefault("errors", [])
-    normalized.setdefault("retry_count", 0)
     normalized.setdefault("final_output", None)
     normalized.setdefault("latest_execution_results", {})
     normalized.setdefault("latest_verification_package", {})
@@ -82,13 +81,15 @@ def normalize_state(state: Dict[str, Any]) -> Dict[str, Any]:
     normalized.setdefault("verification_status", "")
     normalized.setdefault("all_parts_found", False)
     normalized.setdefault("excluded_servers", {})
+    normalized.setdefault("server_failure_counts", {})
     normalized.setdefault("_replans", 0)
+    normalized.setdefault("_global_step", 0)
     return normalized
 
 
 def merge_state(base: Dict[str, Any], updates: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Apply an agent's output patch onto the running state dict.
+    Apply an agent's output patch into the running state dict.
 
     Each agent returns a partial dict (only the keys it modified). This function
     merges that patch into the full state according to the strategy defined in
@@ -195,10 +196,11 @@ def refresh_task_descriptions(state: Dict[str, Any]) -> None:
     for tdef in task_defs.values():
         deps = tdef.get("dependencies", [])
         context = [
-            f"{dep}: {completed[dep]['final_answer']}"
+            f"{dep}: {completed[dep]['final_answer']}" # Task_1: The capital is ...
             for dep in deps
             if dep in completed and completed[dep].get("final_answer")
         ]
+        # If there is a depedency
         if context:
             base_desc = tdef.get("description", "")
             marker = "\n\nResults from previous tasks:\n"
@@ -206,16 +208,39 @@ def refresh_task_descriptions(state: Dict[str, Any]) -> None:
                 tdef["description"] = base_desc + marker + "\n".join(context)
 
 
+# Keywords that indicate a transient failure — server should NOT be excluded.
+_TRANSIENT_ERROR_SIGNALS = (
+    "timeout", "timed out", "connection", "network", "temporarily",
+    "rate limit", "too many requests", "service unavailable", "503", "502",
+)
+
+
+def _is_transient_failure(reason) -> bool:
+    """Return True if the failure reason looks like a transient/infrastructure error."""
+    reason_lower = str(reason).lower()
+    return any(signal in reason_lower for signal in _TRANSIENT_ERROR_SIGNALS)
+
+
 def record_failed_servers(state: Dict[str, Any]) -> None:
     """
     Ban the servers used by failed tasks so the Retrieval agent avoids them.
 
-    Called before a replan. For every task in the current step that has not
-    been verified yet, the server that was selected for it is added to
-    `excluded_servers[task_id]`. The Retrieval agent reads this list and never
-    re-selects a banned server for the same task, forcing it to try an
-    alternative on the next attempt.
+    Two-stage exclusion (Option A + B combined):
+    - Transient failures (timeout, connection, rate-limit): NEVER exclude.
+      The same server will be retried on the next replan.
+    - Non-transient failures (wrong data, no tools, bad answer): exclude only
+      after the 2nd failure with the same server (grace period for one retry).
+
+    `server_failure_counts[task_id][server_name]` tracks how many non-transient
+    failures each server has accumulated per task.
     """
+    failure_reason = state.get("last_failure_reason", "")
+
+    # Transient error — do not touch excluded_servers at all.
+    if _is_transient_failure(failure_reason):
+        logger.info("Transient failure detected ('%s') — server exclusion skipped.", failure_reason)
+        return
+
     plan = state.get("plan", [])
     idx = state.get("current_step_index", 0)
     if idx >= len(plan):
@@ -224,6 +249,7 @@ def record_failed_servers(state: Dict[str, Any]) -> None:
     finished = set(state.get("finished_task_ids", []))
     selected = state.get("selected_servers", {})
     excluded = state.setdefault("excluded_servers", {})
+    failure_counts = state.setdefault("server_failure_counts", {})
 
     for task_id in current_task_ids:
         if task_id in finished:
@@ -236,9 +262,23 @@ def record_failed_servers(state: Dict[str, Any]) -> None:
             if isinstance(server_info, dict)
             else server_info
         )
-        if server_name:
+        # Skip sentinel values — "none"/empty means retrieval found no server at all.
+        # Excluding "none" as if it were a real server corrupts the exclusion list.
+        if not server_name or server_name.lower() in ("none", "null", ""):
+            continue
+
+        # Increment non-transient failure count for this server/task pair.
+        task_counts = failure_counts.setdefault(task_id, {})
+        task_counts[server_name] = task_counts.get(server_name, 0) + 1
+
+        # Exclude only after 2nd non-transient failure (Option A grace period).
+        if task_counts[server_name] >= 2:
             excluded.setdefault(task_id, [])
             if server_name not in excluded[task_id]:
+                logger.info(
+                    "Excluding server '%s' for task '%s' after %d non-transient failures.",
+                    server_name, task_id, task_counts[server_name]
+                )
                 excluded[task_id].append(server_name)
 
 def all_steps_completed(state: Dict[str, Any]) -> bool:

@@ -6,21 +6,31 @@ from .agents.planner import planner_node
 from .agents import executor as executor_module
 from .agents.executor import initialize_executor
 from .utils import normalize_state
-from .config import VLLM_BASE_URL, MODEL_FOR_PLANNING, MODEL_FOR_RETRIEVAL, MODEL_FOR_EXECUTOR, MODEL_FOR_ANSWERING, MODEL_FOR_VERIFIER
+from .config import VLLM_BASE_URL, API_KEY, MODEL_FOR_PLANNING, MODEL_FOR_RETRIEVAL, MODEL_FOR_EXECUTOR, MODEL_FOR_ANSWERING, MODEL_FOR_VERIFIER
 from .token_tracker import token_tracker
 
 logger = logging.getLogger(__name__)
 
 def _check_llm_connection() -> None:
     """
-    Verify the LLM endpoint is reachable and all configured models are loaded.
+    Verify the LLM endpoint is reachable.
 
-    Called once at the start of run_graph(). Raises SystemExit on any failure
-    so the system never enters the planning loop with a broken or misconfigured
-    LLM backend.
+    For local vLLM servers, also validates that all configured models are loaded.
+    For remote APIs (OpenRouter, OpenAI, Azure), skips the model-list check
+    since those endpoints do not expose a /models listing in the same way.
     """
+    is_local = "localhost" in VLLM_BASE_URL or "127.0.0.1" in VLLM_BASE_URL
+
+    if not is_local:
+        logger.info(f"Using remote LLM endpoint: {VLLM_BASE_URL} (model: {MODEL_FOR_PLANNING})")
+        return
+
     try:
-        response = httpx.get(f"{VLLM_BASE_URL}/models", timeout=5)
+        response = httpx.get(
+            f"{VLLM_BASE_URL}/models",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+            timeout=5
+        )
         response.raise_for_status()
     except httpx.ConnectError:
         print(f"\nLLM endpoint unreachable: {VLLM_BASE_URL}")
@@ -100,17 +110,24 @@ async def run_graph(initial_state: Dict[str, Any], max_replans: int = 5) -> Dict
     # Establish persistent stdio/HTTP connections to all MCP servers up front.
     await initialize_executor()
 
+    answer_log = []
     try:
         # The Planner drives the entire system on each call and sets
         # `final_output` when the query is fully answered or when the
         # system has exhausted its replan budget.
         while not state.get("final_output"):
+            prev_pkg = state.get("latest_verification_package", {})
             state = await planner_node(state)
             if not state:
                 logger.warning("Planner returned empty state — stopping loop.")
                 break
+            new_pkg = state.get("latest_verification_package", {})
+            if new_pkg and new_pkg is not prev_pkg:
+                answer_log.append(new_pkg)
     finally:
         await _close_mcp_connections()
+
+    state["answer_log"] = answer_log
 
     # Print token usage summary and attach it to state for programmatic access.
     print(token_tracker.summary())

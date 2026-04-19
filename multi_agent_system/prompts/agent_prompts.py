@@ -33,6 +33,7 @@ RULES:
    - "tool": DEFAULT. Use whenever ANY server in the Available MCP Servers list could handle the task.
    - "reasoning": LAST RESORT. Use ONLY for simple comparison or summary of data already collected, AND only when none of the Available MCP Servers can help.
 6. SERVER-AGNOSTIC DESCRIPTIONS: Task descriptions MUST NOT mention any specific MCP server, tool name, or API. Describe WHAT data is needed, not HOW to get it.
+7. Before creating any task, check completed_tasks. If any completed task already answered the same question (even with a different task_id), DO NOT create it again.
 
 Available MCP Servers:
 {available_servers}
@@ -92,7 +93,9 @@ HARD RULES:
 3. Tasks in the SAME step execute concurrently and cannot see each other's output. Dependent tasks go in FUTURE steps.
 4. Each task must be solvable by ONE MCP server with ONE tool call (or a short chain on that server).
 5. Task descriptions MUST NOT mention any specific MCP server, tool name, or API.
-6. USE COMPLETED DATA: Do NOT re-fetch data already present in 'completed_tasks_results'.
+6. NO DUPLICATE TASKS: Before creating any task, read every entry in 'completed_tasks_results'.
+   If any completed task already answers the same question — even with a different task_id — DO NOT create it again.
+   Compare by MEANING, not by task_id. If the description of your new task is the same as a completed task's description, skip it.
 7. Set 'task_type' on every task: "tool" (default) or "reasoning" (only when no server can help).
 8. If 'completed_tasks_results' already contains enough data to answer the user query, return done=true.
 
@@ -283,6 +286,7 @@ MISSION
    "reject". Replanning will never fix a query about something that has not happened.
   
 IMPORTANT: passed_task_ids must contain exactly the task_ids you marked as PASS in the feedback field. These must be consistent
+FAIL only when the factual content is wrong or a required piece of information is missing. NEVER FAIL for phrasing, word choice, tone, or style. If the answer is factually correct, mark it PASS regardless of how it is worded.
 
 OUTPUT FORMAT (STRICT JSON)
 {{

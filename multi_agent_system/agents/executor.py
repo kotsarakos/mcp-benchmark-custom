@@ -44,7 +44,7 @@ MAX_DUPLICATE_BLOCKS = 2
 
 def get_command_path():
     """
-    Get the commads.json file, which includes the tool definitions and server configs.
+    Get the commads.json file, which includes the server configs.
     """
     current_dir = os.path.dirname(__file__)
     agents_dir = os.path.abspath(os.path.join(current_dir, "../"))
@@ -122,6 +122,7 @@ async def initialize_executor(command_file: str = None):
             else:
                 logger.warning(f"[ENV WARNING] {var} not found")
 
+        # Normalize server name to match tool definitions and MCPConnector expectations
         configs.append({
             "name": server_name.lower().replace(" ", "_"),
             "command": cmd_list,
@@ -133,6 +134,8 @@ async def initialize_executor(command_file: str = None):
         })
 
     server_manager = PersistentMultiServerManager(configs)
+
+    # Open connections to all servers in parallel, with error handling and logging.
     await server_manager.connect_all_servers()
 
     initialized = True
@@ -149,6 +152,8 @@ async def executor_node(state: Dict[str, Any]) -> Dict[str, Any]:
     Returns a state patch with:
         latest_execution_results: dict mapping task_id --> raw result string
     """
+
+    # Ensure the executor is initialized and has active connections to all MCP servers before executing any tasks.
     await initialize_executor()
 
     current_idx = state.get("current_step_index", 0)

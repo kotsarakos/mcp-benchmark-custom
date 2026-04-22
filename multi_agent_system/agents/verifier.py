@@ -24,23 +24,27 @@ async def verifier_node(state: dict):
     Determines if the step is complete or needs re-planning.
     """
     
+    # Package from the latest execution step, containing task results and summaries
     package = state.get("latest_verification_package", {})
+
+    # Extract the tasks analysis and task definitions from the state
     tasks_analysis = package.get("tasks_analysis", [])
     task_defs = state.get("task_definitions", {})
 
-    
+    # If there are no tasks to verify, we can immediately return a failure status
     if not tasks_analysis:
         return {
             "verification_status": "fail",
             "last_failure_reason": "No tasks to verify — execution produced no results."
         }
     
+    # Verification context for the Verifier, including original sub-queries, provided answers, and technical summaries
     verification_context = []
     for task in tasks_analysis:
         t_id = task.get("task_id")
         verification_context.append({
             "task_id": t_id,
-            "original_query": task_defs.get(t_id, {}).get("description", "N/A"),
+            "original_query": task_defs.get(t_id, {}).get("description", "N/A"), # Get the original query/description for this task from task definitions, defaulting to "N/A" if not found
             "answer_provided": task.get("final_answer", ""),
             "technical_summary": task.get("summary", "")
         })
@@ -77,6 +81,7 @@ async def verifier_node(state: dict):
         else:
             verification_status = "fail"
 
+        # Prepare the output with verification status and reasons for failure if applicable
         output = {
             "verification_status": verification_status,
             "last_failure_reason": str(result.get("feedback", "")) if verification_status == "fail" else ""

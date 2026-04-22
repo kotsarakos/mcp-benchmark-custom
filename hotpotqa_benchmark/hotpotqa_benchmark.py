@@ -184,7 +184,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Run HotpotQA on the multi-agent system")
     parser.add_argument(
         "--dataset",
-        default=os.path.join(PROJECT_ROOT, "datasets/hotpotqa/hotpot_dev_fullwiki_v1.json"),
+        default=os.path.join(SCRIPT_DIR, "hotpot_dev_fullwiki_v1.json"),
         help="Path to HotpotQA dev fullwiki JSON file",
     )
     parser.add_argument(

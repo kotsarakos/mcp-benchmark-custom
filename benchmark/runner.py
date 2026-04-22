@@ -27,7 +27,7 @@ from typing import Dict, List, Any, Optional
 # Add parent directory to Python path to resolve imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from openai import AsyncAzureOpenAI
+from openai import AsyncAzureOpenAI, AsyncOpenAI
 
 from agent.executor import TaskExecutor
 from mcp_modules.server_manager_persistent import PersistentMultiServerManager
@@ -426,14 +426,24 @@ class BenchmarkRunner:
         if timeout_seconds is None:
             timeout_seconds = config_loader.get_task_timeout()
         
-        # Initialize judge provider once for this task execution
+        # Initialize judge provider once for this task execution.
+        # Prefers Azure if configured, falls back to OpenAI direct API.
         if not hasattr(self, '_judge_provider') or self._judge_provider is None:
-            azure_client = AsyncAzureOpenAI(
-                azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-                api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-                api_version=config_loader.get_azure_api_version()
-            )
-            self._judge_provider = LLMProvider(azure_client, "o4-mini", "azure")
+            if os.getenv("AZURE_OPENAI_API_KEY") and os.getenv("AZURE_OPENAI_ENDPOINT"):
+                judge_client = AsyncAzureOpenAI(
+                    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+                    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+                    api_version=config_loader.get_azure_api_version()
+                )
+                self._judge_provider = LLMProvider(judge_client, "o4-mini", "azure")
+            elif os.getenv("OPENAI_API_KEY"):
+                judge_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+                self._judge_provider = LLMProvider(judge_client, "o4-mini", "openai_compatible")
+            else:
+                raise RuntimeError(
+                    "No judge LLM configured. Set AZURE_OPENAI_API_KEY + AZURE_OPENAI_ENDPOINT "
+                    "or OPENAI_API_KEY in your .env file."
+                )
         
         # Step 1: Prepare task execution information
         task_execution_info = await self._prepare_task_execution(task_info)

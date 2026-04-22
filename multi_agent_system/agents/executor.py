@@ -1,6 +1,7 @@
 import logging
 import json
 import os
+import time
 import asyncio
 from typing import Dict, Any
 
@@ -14,6 +15,7 @@ from mcp_modules.connector import MCPConnector
 from ..config import VLLM_BASE_URL, API_KEY, MODEL_FOR_EXECUTOR, TEMPERATURE
 from ..prompts.agent_prompts import EXECUTOR_REACT_PROMPT
 from ..token_tracker import token_tracker
+from ..trace_recorder import get_recorder
 
 logger = logging.getLogger(__name__)
 
@@ -216,6 +218,10 @@ async def execute_single_task(state, task_id, selected_servers, max_steps: int =
     Answer agent will structure into a clean answer.
     """
 
+    # The TraceRecorder is optional and only present if _enable_trace was set in the initial state (e.g. during MCP-Bench evaluation). 
+    # It allows us to capture detailed logs of tool calls, results, and errors for later analysis.
+    recorder = get_recorder(state)
+    
     task_desc = state["task_definitions"][task_id]["description"]
 
     server_info = selected_servers.get(task_id)
@@ -330,6 +336,8 @@ async def execute_single_task(state, task_id, selected_servers, max_steps: int =
                 continue
 
             fail_reason = None
+
+            call_start = time.time()
             try:
                 # Asynchronous tool call with timeout
                 result_obj = await asyncio.wait_for(
@@ -359,9 +367,26 @@ async def execute_single_task(state, task_id, selected_servers, max_steps: int =
                 fail_reason = observation
                 logger.warning("Task %s step %d: tool call failed: %s", task_id, step, observation)
 
+            # End of tool call — record the result and any failure reason for this step, 
+            # then loop to the next step where the LLM receives the new observation.    
+            call_duration = time.time() - call_start
+
             if fail_reason:
                 failed_calls.append(
                     f"  {tool_name}({json.dumps(arguments, separators=(',', ':'))}) → {fail_reason}"
+                )
+
+            # Record the tool call, result, and any failure reason in the TraceRecorder if it's enabled.
+            # This allows us to capture detailed execution traces for Benchmarks evaluation without affecting other runs.
+            if recorder is not None:
+                recorder.record_tool_call(
+                    tool=tool_name,
+                    server=server_name,
+                    parameters=arguments,
+                    success=(fail_reason is None),
+                    result=observation,
+                    error=fail_reason,
+                    duration_seconds=call_duration,
                 )
 
             history.append({

@@ -8,6 +8,7 @@ from .agents.executor import initialize_executor
 from .utils import normalize_state
 from .config import VLLM_BASE_URL, API_KEY, MODEL_FOR_PLANNING, MODEL_FOR_RETRIEVAL, MODEL_FOR_EXECUTOR, MODEL_FOR_ANSWERING, MODEL_FOR_VERIFIER
 from .token_tracker import token_tracker
+from .trace_recorder import TraceRecorder
 
 logger = logging.getLogger(__name__)
 
@@ -107,8 +108,16 @@ async def run_graph(initial_state: Dict[str, Any], max_replans: int = 5) -> Dict
     state = normalize_state(initial_state)
     state["_max_replans"] = max_replans
 
+    # Trace capture for MCP-Bench evaluation.
+    if initial_state.get("_enable_trace"):
+        state["_recorder"] = TraceRecorder()
+
     # Establish persistent stdio/HTTP connections to all MCP servers up front.
     await initialize_executor()
+
+    recorder = state.get("_recorder")
+    if recorder is not None and executor_module.server_manager is not None:
+        recorder.set_available_tools(executor_module.server_manager.all_tools)
 
     answer_log = []
     try:
@@ -116,6 +125,8 @@ async def run_graph(initial_state: Dict[str, Any], max_replans: int = 5) -> Dict
         # `final_output` when the query is fully answered or when the
         # system has exhausted its replan budget.
         while not state.get("final_output"):
+            if recorder is not None:
+                recorder.increment_round()
             prev_pkg = state.get("latest_verification_package", {})
             state = await planner_node(state)
             if not state:

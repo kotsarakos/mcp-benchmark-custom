@@ -152,12 +152,11 @@ class LLMProvider:
             ],
         }
         
-        # Handle different token parameter names
-        if self.provider_type == "azure":
-            if self.deployment_name in MODELS_WITH_MAX_COMPLETION_TOKENS:
-                params["max_completion_tokens"] = max_tokens
-            else:
-                params["max_tokens"] = max_tokens
+        # Handle different token parameter names.
+        # o4-mini and o3 require max_completion_tokens on both Azure and direct OpenAI API.
+        model_id = self.deployment_name.split("/")[-1]  # handle "openai/o4-mini" style names
+        if model_id in MODELS_WITH_MAX_COMPLETION_TOKENS:
+            params["max_completion_tokens"] = max_tokens
         else:
             params["max_tokens"] = max_tokens
         

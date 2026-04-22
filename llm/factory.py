@@ -261,6 +261,14 @@ class LLMFactory:
                 base_url="https://openrouter.ai/api/v1",
                 model_name="google/gemma-3-27b-it"
             )
+
+            configs["gemma-3-12b-it"] = ModelConfig(
+                name="gemma-3-12b-it",
+                provider_type="openrouter",
+                api_key=os.getenv("OPENROUTER_API_KEY"),
+                base_url="https://openrouter.ai/api/v1",
+                model_name="google/gemma-3-12b-it"
+            )
             
             configs["qwq-32b"] = ModelConfig(
                 name="qwq-32b",
@@ -294,6 +302,17 @@ class LLMFactory:
                 model_name="google/gemini-2.5-pro"
             )
         
+        # Local vLLM models
+        vllm_model = os.getenv("VLLM_MODEL_NAME")
+        if vllm_model:
+            configs["gemma-3-12b"] = ModelConfig(
+                name="gemma-3-12b",
+                provider_type="openai_compatible",
+                api_key=os.getenv("VLLM_API_KEY", "api_key"),
+                base_url=os.getenv("VLLM_BASE_URL", "http://localhost:9999/v1"),
+                model_name=vllm_model,
+            )
+
         # Llama models
         llama_models = [
             ("llama-4-maverick", "LLAMA_4_MAVERICK"),

@@ -14,6 +14,7 @@ from ..prompts.agent_prompts import (
     PLANNER_REASONING_STEP_PROMPT,
 )
 from ..token_tracker import token_tracker
+from ..trace_recorder import get_recorder
 from ..utils import (
     merge_state,
     commit_verified_results,
@@ -45,6 +46,23 @@ _replan_chain = ChatPromptTemplate.from_template(PLANNER_REPLAN_PROMPT) | llm
 _reasoning_chain = ChatPromptTemplate.from_template(PLANNER_REASONING_STEP_PROMPT) | llm
 _synthesis_chain = ChatPromptTemplate.from_template(PLANNER_FINAL_SYNTHESIS_PROMPT) | llm
 _json_parser = JsonOutputParser()
+
+
+def _parse_with_tracking(raw_content: str, state: dict):
+    """
+    Parse Planner JSON and report success/failure to the trace recorder
+    (if tracing is enabled). Reraises so existing error handling still works.
+    """
+    recorder = get_recorder(state)
+    try:
+        parsed = _json_parser.parse(raw_content)
+    except Exception:
+        if recorder is not None:
+            recorder.record_plan_parse(success=False)
+        raise
+    if recorder is not None:
+        recorder.record_plan_parse(success=True)
+    return parsed
 
 # Load server inventory once at module startup
 try:
@@ -138,7 +156,9 @@ async def _generate_plan(state: dict, is_replan: bool = False) -> dict:
             timeout=120
         )
         token_tracker.track("planner", raw_response)
-        structured = _json_parser.parse(raw_response.content)
+
+        # Parse the raw response with tracking to capture parse success/failure in the trace recorder.
+        structured = _parse_with_tracking(raw_response.content, state)
 
         if structured.get("done"):
             return {"_done": True}
@@ -146,14 +166,26 @@ async def _generate_plan(state: dict, is_replan: bool = False) -> dict:
         step = structured.get("step", {})
         task_definitions = structured.get("task_definitions", {})
 
-        # Filter out tasks that are already completed
-        # Select the ids of tasks that are already completed, and remove them from the new plan and definitions.
+        # Filter out tasks that are already completed by ID or by description.
         already_done = set(completed_results.keys())
+
+        # Filter out tasks whose descriptions match already completed ones, 
+        # to allow for more flexible replanning that doesn't get stuck on minor ID collisions.
+        completed_descs = {
+            v.get("description", "").strip().lower()
+            for v in completed_results.values()
+            if v.get("description")
+        }
+
         task_definitions = {
             tid: tdef for tid, tdef in task_definitions.items()
             if tid not in already_done
+            and tdef.get("description", "").strip().lower() not in completed_descs
         }
-        filtered_tasks = [t for t in step.get("tasks", []) if t not in already_done]
+
+        # Filter the step's task list to match the remaining definitions. If none remain, we're done with this step and can move on.
+        filtered_tasks = [t for t in step.get("tasks", []) if t in task_definitions]
+
         if not filtered_tasks:
             return {"_done": True}
         step = {**step, "tasks": filtered_tasks}
@@ -215,7 +247,7 @@ async def handle_final_synthesis(state: dict) -> dict:
             timeout=120
         )
         token_tracker.track("planner", raw_response)
-        response = _json_parser.parse(raw_response.content)
+        response = _parse_with_tracking(raw_response.content, state)
         return {
             "final_output": response.get("answer"),
             "messages": [{"role": "assistant", "content": "Final synthesis generated."}]
@@ -258,7 +290,7 @@ async def handle_reasoning_step(state: dict) -> dict:
             timeout=120
         )
         token_tracker.track("planner", raw_response)
-        response = _json_parser.parse(raw_response.content)
+        response = _parse_with_tracking(raw_response.content, state)
         return {
             "final_output": response.get("final_answer"),
             "messages": [{"role": "assistant", "content": "Planner resolved reasoning step."}]
@@ -430,6 +462,9 @@ async def planner_node(state: dict) -> dict:
             if not history or history[-1] != failure_reason:
                 history.append(failure_reason)
 
+        # Commit any partially-approved tasks (e.g. task_1 PASS, task_2 FAIL)
+        commit_verified_results(state)
+
         if replans > max_replans:
             logger.error("MAX REPLANS (%d) REACHED -- stopping.", max_replans)
             # Try to synthesize from whatever has been collected so far
@@ -449,7 +484,6 @@ async def planner_node(state: dict) -> dict:
             ) or f"System stopped after {max_replans} failed replans. Last reason: {failure_reason}"
             return merge_state(state, {"final_output": fallback})
 
-        commit_verified_results(state)
         record_failed_servers(state)
         state["plan"] = []
         state["current_step_index"] = 0

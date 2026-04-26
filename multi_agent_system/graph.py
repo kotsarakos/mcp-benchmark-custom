@@ -5,7 +5,7 @@ from typing import Any, Dict
 from .agents.planner import planner_node
 from .agents import executor as executor_module
 from .agents.executor import initialize_executor
-from .utils import normalize_state
+from .utils import normalize_state, merge_state
 from .config import VLLM_BASE_URL, API_KEY, MODEL_FOR_PLANNING, MODEL_FOR_RETRIEVAL, MODEL_FOR_EXECUTOR, MODEL_FOR_ANSWERING, MODEL_FOR_VERIFIER
 from .token_tracker import token_tracker
 from .trace_recorder import TraceRecorder
@@ -83,7 +83,7 @@ async def _close_mcp_connections() -> None:
         executor_module.server_manager = None
 
 
-async def run_graph(initial_state: Dict[str, Any], max_replans: int = 5) -> Dict[str, Any]:
+async def run_graph(initial_state: Dict[str, Any], max_replans: int = 5, max_total_steps: int = 20) -> Dict[str, Any]:
     """
     Execute the multi-agent system for a user query.
 
@@ -113,18 +113,44 @@ async def run_graph(initial_state: Dict[str, Any], max_replans: int = 5) -> Dict
         state["_recorder"] = TraceRecorder()
 
     # Establish persistent stdio/HTTP connections to all MCP servers up front.
-    await initialize_executor()
+    # If initial_state["_server_subset"] is provided (used by mcpbench_benchmark
+    # for per-task required+distraction lifecycle), connect only to those.
+    await initialize_executor(server_subset=initial_state.get("_server_subset"))
 
     recorder = state.get("_recorder")
     if recorder is not None and executor_module.server_manager is not None:
         recorder.set_available_tools(executor_module.server_manager.all_tools)
 
     answer_log = []
+    total_steps = 0
     try:
         # The Planner drives the entire system on each call and sets
         # `final_output` when the query is fully answered or when the
         # system has exhausted its replan budget.
+        # Hard cap on total iterations (plan + replan combined) — matches the
+        # official MCP-Bench `execution.max_execution_rounds=20`. When hit, we
+        # return whatever has been collected so far instead of looping forever.
         while not state.get("final_output"):
+            if total_steps >= max_total_steps:
+                logger.warning(
+                    "Reached max_total_steps=%d — invoking final synthesis on collected results.",
+                    max_total_steps,
+                )
+                # Run the same final-synthesis path the planner uses on success,
+                # so the user gets a coherent LLM-synthesized answer rather than
+                # a raw concatenation of per-task outputs.
+                from .agents.planner import handle_final_synthesis
+                synth = await handle_final_synthesis(state)
+                state = merge_state(state, synth)
+                # Safety net: handle_final_synthesis already sets a fallback on
+                # exception, but if final_output is still empty, stamp a marker.
+                if not state.get("final_output"):
+                    state["final_output"] = (
+                        f"System stopped after {max_total_steps} steps without producing any task results."
+                    )
+                break
+
+            total_steps += 1
             if recorder is not None:
                 recorder.increment_round()
             prev_pkg = state.get("latest_verification_package", {})

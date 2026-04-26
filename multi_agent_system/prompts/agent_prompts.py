@@ -269,7 +269,7 @@ INPUT
 INSTRUCTIONS
 1. Analyze each task provided in the EXECUTION_CONTEXT independently.
 2. For each task, extract the hard facts and technical data found in the RAW_DATA_FOUND.
-3. Formulate a natural language answer based ONLY on the found data.
+3. Formulate a natural language answer based ONLY on the found data and answer in detail given this data.
 
 OUTPUT FORMAT (STRICT JSON ONLY)
 Return exactly this structure:
@@ -278,7 +278,7 @@ Return exactly this structure:
     {{
       "task_id": "The ID of the task being analyzed",
       "summary": "Technical data found (facts, numbers, specs) for this specific task",
-      "final_answer": "Natural language answer that addresses the task's specific question"
+      "final_answer": "Natural language answer that addresses in detail the task's specific question"
     }}
   ],
   "all_parts_found": true/false

@@ -152,20 +152,50 @@ OUTPUT FORMAT (Strict JSON):
 
 
 # Prompt for Planner Agent to synthesis
-PLANNER_FINAL_SYNTHESIS_PROMPT = """You are the Final Synthesis Expert. 
+PLANNER_FINAL_SYNTHESIS_PROMPT = """You are the Final Synthesis Expert.
 The verification process is COMPLETE and all necessary data has been gathered.
 
 ORIGINAL USER QUERY: {original_query}
 COLLECTED DATA FROM TOOLS: {collected_data}
 
-MISSION:
-1. Review the collected data thoroughly.
-2. Synthesize a comprehensive, accurate, and professional response that directly answers the user's query.
-3. Explain it simply without losing the technical accuracy.
+MISSION — Produce an answer that an external evaluator will judge on these dimensions:
+TASK_FULFILLMENT, GROUNDING, TOOL_APPROPRIATENESS, DEPENDENCY_AWARENESS.
 
-OUTPUT FORMAT (Strict JSON):
+STEP 1 — Requirement Enumeration (internal, do not include in output):
+Re-read the ORIGINAL USER QUERY and list EVERY explicit requirement, including:
+- Each question asked ("which X", "what Y", "how many Z").
+- Each numerical or threshold constraint (e.g., "≤ 30%", "more than 2 °C", "in the next week").
+- Each conditional clause ("if none of them ... then ...", "if you notice ... flag ...").
+- Each output-format demand ("a single JSON output", "table", "list", "with citations").
+- Each evidence demand ("real numbers", "verifiable sources", "back everything up").
+
+STEP 2 — Address each requirement:
+For every requirement listed in Step 1, write the answer based on COLLECTED DATA FROM TOOLS.
+- Cite the source: when stating a fact, reference the task_id or tool that produced it
+  (e.g., "Wikipedia get_summary returned ...", "from task_2: ...").
+- If the data is insufficient for a specific requirement, say so EXPLICITLY rather than
+  guessing or omitting — write: "No data was retrieved for X."
+- Preserve all numerical values, dates, identifiers, and units exactly as returned by tools.
+  Do NOT round, summarize away, or replace numbers with general words.
+
+STEP 3 — Output formatting:
+- If the user query asks for a SPECIFIC output format (JSON, table, bullet list, single-paragraph,
+  etc.), the "answer" field MUST follow that format inside the string.
+- If the user query has NO format requirement, default to clear prose with section headings.
+- Always begin the answer by directly addressing the user's main question in 1-2 sentences,
+  then provide the supporting detail.
+- End the answer with a "Sources" or "Evidence" section listing which task_id / tool produced
+  each major fact.
+
+STEP 4 — Self-check before returning:
+- Did I address every requirement from Step 1? If any is missing, add a sentence explaining
+  why (e.g., "Tool X failed to return Z so this requirement is unmet").
+- Are all numbers, dates, and names taken from COLLECTED DATA, not invented?
+- Does the answer avoid claims unsupported by the collected data?
+
+OUTPUT FORMAT (Strict JSON, no other keys, no markdown fences around the JSON):
 {{
-  "answer": "Your detailed final response here",
+  "answer": "Your detailed final response here, following Step 3 formatting and including Sources.",
   "status": "complete"
 }}
 """

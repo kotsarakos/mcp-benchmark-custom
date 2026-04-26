@@ -159,6 +159,11 @@ class LLMProvider:
             params["max_completion_tokens"] = max_tokens
         else:
             params["max_tokens"] = max_tokens
+
+        # For OpenRouter: restrict to bf16 providers only.
+        # This excludes Together (404s on gemma-4-31b-it) and fp8-quantized models which can cause instability.
+        if self.provider_type == "openrouter":
+            params["extra_body"] = {"provider": {"quantizations": ["bf16"]}}
         
         # Simple retry mechanism: 3 attempts with exponential backoff
         max_attempts = 3

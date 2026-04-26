@@ -269,6 +269,14 @@ class LLMFactory:
                 base_url="https://openrouter.ai/api/v1",
                 model_name="google/gemma-3-12b-it"
             )
+
+            configs["gemma-4-31b-it"] = ModelConfig(
+                name="gemma-4-31b-it",
+                provider_type="openrouter",
+                api_key=os.getenv("OPENROUTER_API_KEY"),
+                base_url="https://openrouter.ai/api/v1",
+                model_name="google/gemma-4-31b-it"
+            )
             
             configs["qwq-32b"] = ModelConfig(
                 name="qwq-32b",

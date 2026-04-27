@@ -4,9 +4,10 @@ import logging
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
-from ..config import VLLM_BASE_URL, API_KEY, MODEL_FOR_RETRIEVAL, TEMPERATURE, INVENTORY_DIR
+from ..config import VLLM_BASE_URL, API_KEY, MODEL_FOR_RETRIEVAL, TEMPERATURE, INVENTORY_DIR, make_model_kwargs
 from ..prompts.agent_prompts import RETRIEVER_SYSTEM_PROMPT
 from ..token_tracker import token_tracker
+from ..utils import current_date_str
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ llm = ChatOpenAI(
     openai_api_key=API_KEY,
     base_url=VLLM_BASE_URL,
     temperature=TEMPERATURE,
-    model_kwargs={"response_format": {"type": "json_object"}}
+    model_kwargs=make_model_kwargs({"response_format": {"type": "json_object"}})
 )
 
 # Cached chain and parser
@@ -32,17 +33,21 @@ except Exception as _e:
         f"Retrieval: could not load the names of MCP servers — system cannot start. Reason: {_e}"
     ) from _e
 
-async def select_mcp_server(task_id, task_desc, excluded=None, max_retries=3):
+async def select_mcp_server(task_id, task_desc, excluded=None, max_retries=3, inventory=None):
     """
     Identifies the appropriate MCP server for a specific task using LLM reasoning.
     - task_id: Unique identifier for the task.
     - task_desc: Description of the task to be routed.
     - excluded: List of servers to exclude from selection (already tried and failed).
     - max_retries: Maximum number of retries for LLM invocation in case of failures.
+    - inventory: Optional list of server names to choose from. When None, the full
+      module-level inventory is used. mcpbench_benchmark passes a per-task subset
+      so the agent only considers required+distraction servers actually connected.
     Returns a tuple of (task_id, {"selected_server": server_name or None})
     """
 
     excluded_list = excluded or []
+    server_inventory = inventory if inventory is not None else _inventory_index
 
     attempts = 0
     last_error = ""
@@ -53,8 +58,9 @@ async def select_mcp_server(task_id, task_desc, excluded=None, max_retries=3):
             raw_response = await asyncio.wait_for(
                 _retrieval_chain.ainvoke({
                     "task_description": task_desc,
-                    "server_list": json.dumps(_inventory_index, ensure_ascii=False),
+                    "server_list": json.dumps(server_inventory, ensure_ascii=False),
                     "excluded_servers": json.dumps(excluded_list, ensure_ascii=False),
+                    "current_date": current_date_str(),
                 }),
                 timeout=60
             )
@@ -114,12 +120,22 @@ async def retrieval_node(state: dict) -> dict:
     # Get the list of already excluded servers for this step (if any) to avoid retrying them
     excluded_servers = state.get("excluded_servers", {})
 
+    # Per-task server subset (from mcpbench_benchmark). When set, restricts the
+    # retrieval LLM's options to required+distraction servers only.
+    inventory_override = state.get("_server_subset")
+    if inventory_override is not None:
+        logger.info(
+            "Retrieval inventory restricted to %d servers: %s",
+            len(inventory_override), inventory_override
+        )
+
     # Build one coroutine per task and run them all concurrently.
     coros = [
         select_mcp_server(
             tid,
             task_definitions[tid]["description"],
             excluded=excluded_servers.get(tid, []),
+            inventory=inventory_override,
         )
         # Iterate only over valid task IDs that are defined in task_definitions to avoid KeyErrors
         for tid in task_ids

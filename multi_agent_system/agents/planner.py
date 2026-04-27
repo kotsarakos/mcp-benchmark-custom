@@ -568,11 +568,7 @@ async def planner_node(state: dict) -> dict:
         print_plan(state, f"STEP {state.get('_global_step', 1)} -- REPLAN #{replans}")
         return await _run_pipeline(state)
 
-    # Has a plan but no verification status: defensive fallback.
-    # Normally _run_pipeline always sets verification_status before returning.
-    # Reaching this branch means a stage silently dropped state — treat it as
-    # a failure so the replan budget engages, instead of spinning the pipeline
-    # with the same inputs until max_total_steps is hit.
+    # Defensive fallback: pipeline returned without verification_status -> treat as fail.
     logger.warning("[PLANNER] Pipeline returned without verification_status — treating as fail.")
     return merge_state(state, {
         "verification_status": "fail",

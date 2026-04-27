@@ -4,9 +4,10 @@ import json
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
-from ..config import VLLM_BASE_URL, API_KEY, MODEL_FOR_VERIFIER, TEMPERATURE
+from ..config import VLLM_BASE_URL, API_KEY, MODEL_FOR_VERIFIER, TEMPERATURE, make_model_kwargs
 from ..prompts.agent_prompts import VERIFIER_SYSTEM_PROMPT
 from ..token_tracker import token_tracker
+from ..utils import current_date_str
 
 # Initialize LLM
 llm = ChatOpenAI(
@@ -14,7 +15,7 @@ llm = ChatOpenAI(
     openai_api_key=API_KEY,
     base_url=VLLM_BASE_URL,
     temperature=TEMPERATURE,
-    model_kwargs={"response_format": {"type": "json_object"}}
+    model_kwargs=make_model_kwargs({"response_format": {"type": "json_object"}})
 )
 
 async def verifier_node(state: dict):
@@ -56,9 +57,10 @@ async def verifier_node(state: dict):
         # Verifier analyzes the tasks and decides which ones are valid
         raw_response = await asyncio.wait_for(
             chain.ainvoke({
-                "verification_context": json.dumps(verification_context, ensure_ascii=False)
+                "verification_context": json.dumps(verification_context, ensure_ascii=False),
+                "current_date": current_date_str(),
             }),
-            timeout=60
+            timeout=120
         )
         
         token_tracker.track("verifier", raw_response)

@@ -4,9 +4,10 @@ import json
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
-from ..config import VLLM_BASE_URL, API_KEY, MODEL_FOR_ANSWERING, TEMPERATURE
+from ..config import VLLM_BASE_URL, API_KEY, MODEL_FOR_ANSWERING, TEMPERATURE, make_model_kwargs
 from ..prompts.agent_prompts import ANSWER_SYSTEM_PROMPT
 from ..token_tracker import token_tracker
+from ..utils import current_date_str
 
 # Initialize LLM 
 llm = ChatOpenAI(
@@ -14,7 +15,7 @@ llm = ChatOpenAI(
     openai_api_key=API_KEY,
     base_url=VLLM_BASE_URL,
     temperature=TEMPERATURE,
-    model_kwargs={"response_format": {"type": "json_object"}}
+    model_kwargs=make_model_kwargs({"response_format": {"type": "json_object"}})
 )
 
 async def answer_node(state: dict):
@@ -71,8 +72,11 @@ async def answer_node(state: dict):
 
         # Invoke LLM to synthesize all raw data into one answer
         raw_response = await asyncio.wait_for(
-            chain.ainvoke({"execution_context": execution_context}),
-            timeout=60
+            chain.ainvoke({
+                "execution_context": execution_context,
+                "current_date": current_date_str(),
+            }),
+            timeout=120
         )
         
         token_tracker.track("answer", raw_response)

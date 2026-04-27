@@ -6,7 +6,7 @@ from typing import final
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
-from ..config import VLLM_BASE_URL, API_KEY, MODEL_FOR_PLANNING, TEMPERATURE, INVENTORY_DIR
+from ..config import VLLM_BASE_URL, API_KEY, MODEL_FOR_PLANNING, TEMPERATURE, make_model_kwargs, INVENTORY_DIR
 from ..prompts.agent_prompts import (
     PLANNER_SYSTEM_PROMPT,
     PLANNER_REPLAN_PROMPT,
@@ -23,6 +23,7 @@ from ..utils import (
     is_reasoning_step,
     print_plan,
     print_step_execution,
+    current_date_str,
 )
 from .retrieval import retrieval_node
 from .executor import executor_node
@@ -37,7 +38,7 @@ llm = ChatOpenAI(
     openai_api_key=API_KEY,
     base_url=VLLM_BASE_URL,
     temperature=TEMPERATURE,
-    model_kwargs={"response_format": {"type": "json_object"}}
+    model_kwargs=make_model_kwargs({"response_format": {"type": "json_object"}})
 )
 
 # Cached prompt chains and parser
@@ -132,6 +133,7 @@ async def _generate_plan(state: dict, is_replan: bool = False) -> dict:
     user_input = state.get("input", "")
     completed_results = state.get("completed_tasks_results", {})
 
+    today = current_date_str()
     if is_replan:
         failures = state.get("failure_history", [])
         chain = _replan_chain
@@ -141,6 +143,7 @@ async def _generate_plan(state: dict, is_replan: bool = False) -> dict:
             "last_failure_reason": state.get("last_failure_reason", ""),
             "failure_history": json.dumps(failures, ensure_ascii=False) if failures else "[]",
             "available_servers": _available_servers_str,
+            "current_date": today,
         }
     else:
         chain = _plan_chain
@@ -148,6 +151,7 @@ async def _generate_plan(state: dict, is_replan: bool = False) -> dict:
             "input": user_input,
             "completed_tasks": json.dumps(completed_results),
             "available_servers": _available_servers_str,
+            "current_date": today,
         }
 
     try:
@@ -227,7 +231,44 @@ async def _generate_plan(state: dict, is_replan: bool = False) -> dict:
 
     except Exception as e:
         logger.error("Planner failed to generate plan: %s", e)
-        return {"last_failure_reason": f"Planner failed to generate JSON: {str(e)}"}
+        # Signal failure so planner_node engages the replan budget.
+        return {
+            "_plan_failed": True,
+            "last_failure_reason": f"Planner failed to generate JSON: {str(e)}",
+        }
+
+
+async def _handle_plan_failure(state: dict, plan_updates: dict) -> dict:
+    """
+    Handle a '_plan_failed' signal from _generate_plan.
+    - Charges 1 to the replan budget.
+    - If budget remains: marks verification_status="fail" so the next iteration replans.
+    - If budget exhausted: falls back to final synthesis on collected data.
+    """
+
+    state["last_failure_reason"] = plan_updates.get("last_failure_reason", "Planner JSON failure")
+    state["_replans"] = state.get("_replans", 0) + 1
+    max_replans = state.get("_max_replans", 5)
+
+    if state["_replans"] > max_replans:
+        logger.error(
+            "Planner JSON kept failing — replan budget exhausted (%d/%d). "
+            "Falling back to final synthesis on collected data.",
+            state["_replans"], max_replans
+        )
+        result = await handle_final_synthesis(state)
+        return merge_state(state, result)
+
+    logger.warning(
+        "Planner JSON failed (%s) — charging replan budget (%d/%d) and trying again.",
+        state["last_failure_reason"], state["_replans"], max_replans
+    )
+
+    # Mark fail so the next planner_node iteration takes the fail branch and replans.
+    state["verification_status"] = "fail"
+    state["plan"] = []
+    state["current_step_index"] = 0
+    return state
 
 
 async def handle_final_synthesis(state: dict) -> dict:
@@ -242,7 +283,8 @@ async def handle_final_synthesis(state: dict) -> dict:
         raw_response = await asyncio.wait_for(
             _synthesis_chain.ainvoke({
                 "original_query": state.get("input"),
-                "collected_data": summary_context
+                "collected_data": summary_context,
+                "current_date": current_date_str(),
             }),
             timeout=120
         )
@@ -286,18 +328,22 @@ async def handle_reasoning_step(state: dict) -> dict:
                 "original_query": state.get("input", ""),
                 "collected_data": json.dumps(completed_results, indent=2, ensure_ascii=False),
                 "reasoning_tasks": json.dumps(reasoning_tasks, indent=2, ensure_ascii=False),
+                "current_date": current_date_str(),
             }),
             timeout=120
         )
         token_tracker.track("planner", raw_response)
         response = _parse_with_tracking(raw_response.content, state)
+        # Private key — avoids terminating run_graph mid-plan.
+        # The returned reasoning answer will be committed to completed_tasks_results
+        # under the original task IDs, so it can be seen by any remaining tasks in the plan that depend on them.
         return {
-            "final_output": response.get("final_answer"),
+            "_reasoning_answer": response.get("final_answer"),
             "messages": [{"role": "assistant", "content": "Planner resolved reasoning step."}]
         }
     except Exception as e:
         logger.error("Planner reasoning step failed: %s", e)
-        # Set final_output to prevent an infinite loop
+        # Catastrophic failure: hard-stop with partial data.
         collected = state.get("completed_tasks_results", {})
         fallback = "; ".join(
             v.get("final_answer", "") for v in collected.values() if v.get("final_answer")
@@ -319,16 +365,25 @@ async def _run_pipeline(state: dict) -> dict:
         reasoning_updates = await handle_reasoning_step(state)
         state = merge_state(state, reasoning_updates)
 
+        # final_output set => catastrophic failure, hard stop.
         if state.get("final_output"):
-            plan = state.get("plan", [])
-            for tid in plan[current_idx].get("tasks", []):
-                state["completed_tasks_results"][tid] = {
-                    "final_answer": state["final_output"],
-                    "summary": "Resolved via planner reasoning."
-                }
-            state["current_step_index"] = current_idx + 1
+            logger.warning("Reasoning step produced final_output via failure fallback.")
+            return state
 
-        logger.info("Final output ready (via Planner reasoning).")
+        # Commit reasoning answer and clear plan so planner_node plans the next step.
+        answer = state.pop("_reasoning_answer", "") or ""
+        plan = state.get("plan", [])
+        if answer and current_idx < len(plan):
+            for tid in plan[current_idx].get("tasks", []):
+                state.setdefault("completed_tasks_results", {})[tid] = {
+                    "final_answer": answer,
+                    "summary": "Resolved via planner reasoning.",
+                }
+        state["plan"] = []
+        state["current_step_index"] = 0
+        state["_global_step"] = state.get("_global_step", 0) + 1
+        state["verification_status"] = ""
+        state["_replans"] = 0
         return state
 
     # Stage 1: Retrieval -- select MCP servers for each task.
@@ -385,6 +440,8 @@ async def planner_node(state: dict) -> dict:
         state["_global_step"] = 0
         logger.info("[PLANNER] Planning first step...")
         plan_updates = await _generate_plan(state)
+        if plan_updates.get("_plan_failed"):
+            return await _handle_plan_failure(state, plan_updates)
         if plan_updates.get("_done"):
             logger.info("[PLANNER] Nothing to do -- FINAL SYNTHESIS")
             result = await handle_final_synthesis(state)
@@ -409,6 +466,8 @@ async def planner_node(state: dict) -> dict:
 
         logger.info("[PLANNER] Planning next step...")
         plan_updates = await _generate_plan(state)
+        if plan_updates.get("_plan_failed"):
+            return await _handle_plan_failure(state, plan_updates)
         if plan_updates.get("_done"):
             logger.info("[PLANNER] All data collected -- FINAL SYNTHESIS")
             result = await handle_final_synthesis(state)
@@ -438,6 +497,8 @@ async def planner_node(state: dict) -> dict:
 
         logger.info("[PLANNER] Planning next step after impossible...")
         plan_updates = await _generate_plan(state)
+        if plan_updates.get("_plan_failed"):
+            return await _handle_plan_failure(state, plan_updates)
         if plan_updates.get("_done"):
             logger.info("[PLANNER] All data collected -- FINAL SYNTHESIS")
             result = await handle_final_synthesis(state)
@@ -492,6 +553,13 @@ async def planner_node(state: dict) -> dict:
 
         logger.info("[PLANNER] Replanning current step...")
         plan_updates = await _generate_plan(state, is_replan=True)
+        if plan_updates.get("_plan_failed"):
+            # Already inside the fail branch — bumping _replans again would
+            # double-charge. Mark as fail and return; next iteration replans.
+            return merge_state(state, {
+                "verification_status": "fail",
+                "last_failure_reason": plan_updates.get("last_failure_reason", "Replan JSON failure"),
+            })
         if plan_updates.get("_done"):
             result = await handle_final_synthesis(state)
             return merge_state(state, result)
@@ -500,6 +568,13 @@ async def planner_node(state: dict) -> dict:
         print_plan(state, f"STEP {state.get('_global_step', 1)} -- REPLAN #{replans}")
         return await _run_pipeline(state)
 
-    # Has a plan but no verification status: resume pipeline
-    logger.info("[PLANNER] Resuming pipeline...")
-    return await _run_pipeline(state)
+    # Has a plan but no verification status: defensive fallback.
+    # Normally _run_pipeline always sets verification_status before returning.
+    # Reaching this branch means a stage silently dropped state — treat it as
+    # a failure so the replan budget engages, instead of spinning the pipeline
+    # with the same inputs until max_total_steps is hit.
+    logger.warning("[PLANNER] Pipeline returned without verification_status — treating as fail.")
+    return merge_state(state, {
+        "verification_status": "fail",
+        "last_failure_reason": "Pipeline returned without verification status (silent stage failure)",
+    })

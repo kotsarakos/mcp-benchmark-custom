@@ -1,0 +1,24 @@
+{
+  "Rule-based": {
+    "Schema Understanding": {
+      "Valid Tool Name Rate": 0.8510,
+      "Schema Compliance": 0.8800,
+      "Execution Success": 0.7820
+    }
+  },
+  "LLM Judge": {
+    "Task Completion": {
+      "Task Fulfillment": 0.2980,
+      "Information Grounding": 0.4510
+    },
+    "Tool Usage": {
+      "Tool Appropriateness": 0.5810,
+      "Parameter Accuracy": 0.5080
+    },
+    "Planning Effectiveness": {
+      "Dependency Awareness": 0.3310,
+      "Parallelism and Efficiency": 0.2150
+    }
+  },
+  "Overall Score": 0.508
+}

@@ -33,7 +33,7 @@ except Exception as _e:
         f"Retrieval: could not load the names of MCP servers — system cannot start. Reason: {_e}"
     ) from _e
 
-async def select_mcp_server(task_id, task_desc, excluded=None, max_retries=3, inventory=None):
+async def select_mcp_server(task_id, task_desc, excluded=None, max_retries=5, inventory=None):
     """
     Identifies the appropriate MCP server for a specific task using LLM reasoning.
     - task_id: Unique identifier for the task.

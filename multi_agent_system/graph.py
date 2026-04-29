@@ -64,6 +64,33 @@ def _check_llm_connection() -> None:
         raise SystemExit(1)
 
 
+def _build_rich_inventory(all_tools: Dict[str, Any]) -> list:
+    """
+    Group flat tool dict (server:tool_name -> {server, description, ...}) into
+    per-server entries: [{"name": ..., "description": ..., "tools": [...]}, ...]
+    The server description is synthesized from its first tool's description.
+    Used by the retrieval agent to make capability-aware routing decisions.
+    """
+    by_server: Dict[str, list] = {}
+    for full_name, info in all_tools.items():
+        server = info.get("server", "")
+        tool_name = full_name.split(":", 1)[1] if ":" in full_name else full_name
+        by_server.setdefault(server, []).append({
+            "name": tool_name,
+            "desc": (info.get("description") or "").strip().split("\n")[0][:200],
+        })
+
+    inventory = []
+    for server, tools in sorted(by_server.items()):
+        desc = tools[0]["desc"] if tools else ""
+        inventory.append({
+            "name": server,
+            "description": desc,
+            "tools": [t["name"] for t in tools],
+        })
+    return inventory
+
+
 async def _close_mcp_connections() -> None:
     """
     Shut down all persistent MCP server connections.
@@ -116,6 +143,12 @@ async def run_graph(initial_state: Dict[str, Any], max_replans: int = 5, max_tot
     # If initial_state["_server_subset"] is provided (used by mcpbench_benchmark
     # for per-task required+distraction lifecycle), connect only to those.
     await initialize_executor(server_subset=initial_state.get("_server_subset"))
+
+    # Build a rich inventory from the live MCP connections — name + description + tool names per server.
+    # Retrieval reads this via state to make routing decisions; it adapts to the connected subset
+    # automatically (mcpbench: required+distractions; normal run: all 28 servers).
+    if executor_module.server_manager is not None:
+        state["_rich_inventory"] = _build_rich_inventory(executor_module.server_manager.all_tools)
 
     recorder = state.get("_recorder")
     if recorder is not None and executor_module.server_manager is not None:

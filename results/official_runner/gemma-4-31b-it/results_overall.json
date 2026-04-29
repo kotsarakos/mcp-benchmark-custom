@@ -20,5 +20,12 @@
       "Parallelism and Efficiency": 0.3090
     }
   },
+  "Efficiency_metrics": {
+    "avg_total_tokens": 477000,
+    "avg_prompt_tokens": 472500,
+    "avg_output_tokens": 4600,
+    "avg_tool_calls_per_task": 37.2,
+    "avg_total_rounds": 10.5
+  },
   "Overall Score": 0.647
 }

@@ -1,9 +1,10 @@
 import logging
 import json
 import os
+import re
 import time
 import asyncio
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -12,10 +13,11 @@ from langchain_core.output_parsers import JsonOutputParser
 from mcp_modules.server_manager_persistent import PersistentMultiServerManager
 from mcp_modules.connector import MCPConnector
 
-from ..config import VLLM_BASE_URL, API_KEY, MODEL_FOR_EXECUTOR, TEMPERATURE
+from ..config import VLLM_BASE_URL, API_KEY, MODEL_FOR_EXECUTOR, TEMPERATURE, make_model_kwargs
 from ..prompts.agent_prompts import EXECUTOR_REACT_PROMPT
 from ..token_tracker import token_tracker
 from ..trace_recorder import get_recorder
+from ..utils import current_date_str
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +27,7 @@ llm = ChatOpenAI(
     openai_api_key=API_KEY,
     base_url=VLLM_BASE_URL,
     temperature=TEMPERATURE,
-    model_kwargs={"response_format": {"type": "json_object"}}
+    model_kwargs=make_model_kwargs({"response_format": {"type": "json_object"}})
 )
 
 # Cache the prompt chain
@@ -37,8 +39,8 @@ server_manager = None
 initialized = False
 
 # Token budget controls — limits how much text enters the ReAct history
-MAX_OBSERVATION_CHARS = 3000   # Hard cap per tool observation
-MAX_HISTORY_CHARS = 10000      # Hard cap on total history passed to the LLM
+MAX_OBSERVATION_CHARS = 100000   # Hard cap per tool observation
+MAX_HISTORY_CHARS = 90000      # Hard cap on total history passed to the LLM
 
 # Max times the same (tool, args) pair may be blocked before forcing DONE.
 MAX_DUPLICATE_BLOCKS = 2
@@ -83,9 +85,16 @@ def load_api_keys(base_dir):
     return env_vars
 
 
-async def initialize_executor(command_file: str = None):
+async def initialize_executor(command_file: str = None, server_subset=None):
     """
     Initialize the PersistentMultiServerManager with configs from commands.json and connect to all servers.
+
+    Args:
+        command_file: Path to commands.json. Defaults to the bundled config.
+        server_subset: Optional iterable of server names (matching commands.json keys, e.g.
+            ["Wikipedia", "NASA Data"]). When provided, only these servers are connected —
+            used by mcpbench_benchmark for per-task required+distraction lifecycle.
+            When None, behaves as before (all servers).
     """
     global server_manager, initialized
 
@@ -99,6 +108,14 @@ async def initialize_executor(command_file: str = None):
 
     with open(command_file, "r") as f:
         raw_data = json.load(f)
+
+    if server_subset is not None:
+        subset_set = set(server_subset)
+        missing = subset_set - set(raw_data.keys())
+        if missing:
+            logger.warning(f"server_subset contains unknown servers (skipped): {sorted(missing)}")
+        raw_data = {k: v for k, v in raw_data.items() if k in subset_set}
+        logger.info(f"Restricting executor to {len(raw_data)} servers: {sorted(raw_data.keys())}")
 
     base_dir = os.path.dirname(command_file)
 
@@ -206,7 +223,7 @@ async def executor_node(state: Dict[str, Any]) -> Dict[str, Any]:
     return {"latest_execution_results": results}
 
 
-async def execute_single_task(state, task_id, selected_servers, max_steps: int = 15):
+async def execute_single_task(state, task_id, selected_servers, max_steps: int = 40):
     """
     ReAct (Reason + Act) execution loop for a single task.
 
@@ -430,8 +447,9 @@ async def _react_step(task_desc: str, formatted_tools: str, history_str: str) ->
             "task_description": task_desc,
             "tools_list": formatted_tools,
             "history": history_str,
+            "current_date": current_date_str(),
         }),
-        timeout=60
+        timeout=120
     )
 
     token_tracker.track("executor", raw_response)

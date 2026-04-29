@@ -40,9 +40,7 @@ async def select_mcp_server(task_id, task_desc, excluded=None, max_retries=3, in
     - task_desc: Description of the task to be routed.
     - excluded: List of servers to exclude from selection (already tried and failed).
     - max_retries: Maximum number of retries for LLM invocation in case of failures.
-    - inventory: Optional list of server names to choose from. When None, the full
-      module-level inventory is used. mcpbench_benchmark passes a per-task subset
-      so the agent only considers required+distraction servers actually connected.
+    - inventory: Optional list of servers to consider for selection (overrides the default inventory).
     Returns a tuple of (task_id, {"selected_server": server_name or None})
     """
 
@@ -120,14 +118,34 @@ async def retrieval_node(state: dict) -> dict:
     # Get the list of already excluded servers for this step (if any) to avoid retrying them
     excluded_servers = state.get("excluded_servers", {})
 
-    # Per-task server subset (from mcpbench_benchmark). When set, restricts the
-    # retrieval LLM's options to required+distraction servers only.
-    inventory_override = state.get("_server_subset")
-    if inventory_override is not None:
+    # Build the inventory the retrieval LLM will see.
+    # Priority:
+    #   1. _rich_inventory (built at runtime from live MCP connections — has
+    #      name + description + tool names per server)
+    #   2. _server_subset (mcpbench legacy — name-only list for required+distractions)
+    #   3. Module-level _inventory_index (fallback — name-only for all servers)
+    rich_inventory = state.get("_rich_inventory")
+
+    server_subset = state.get("_server_subset")
+
+    if rich_inventory is not None:
+        # If mcpbench restricted the connected servers, _rich_inventory already
+        # only contains those (since it was built from live connections).
+        # Otherwise it has every connected server with its tool list.
+        retrieval_inventory = rich_inventory
         logger.info(
-            "Retrieval inventory restricted to %d servers: %s",
-            len(inventory_override), inventory_override
+            "Retrieval inventory: %d servers with tool lists (%s)",
+            len(rich_inventory),
+            "subset" if server_subset else "full",
         )
+    else:
+        # Legacy fallback — name-only inventory (rare; only when graph didn't build it).
+        retrieval_inventory = server_subset
+        if retrieval_inventory is not None:
+            logger.info(
+                "Retrieval inventory restricted to %d server names: %s",
+                len(retrieval_inventory), retrieval_inventory
+            )
 
     # Build one coroutine per task and run them all concurrently.
     coros = [
@@ -135,7 +153,7 @@ async def retrieval_node(state: dict) -> dict:
             tid,
             task_definitions[tid]["description"],
             excluded=excluded_servers.get(tid, []),
-            inventory=inventory_override,
+            inventory=retrieval_inventory,
         )
         # Iterate only over valid task IDs that are defined in task_definitions to avoid KeyErrors
         for tid in task_ids

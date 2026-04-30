@@ -51,13 +51,17 @@ from llm.provider import LLMProvider
 from multi_agent_system.graph import run_graph
 import config.config_loader as config_loader
 
+# Set up logging with timestamps and levels; the "mcpbench" logger is used for all messages in this script.
 logging.basicConfig(
-    level=logging.WARNING,
+    level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
+
+# The "mcpbench" logger is used for all messages in this script, so users can easily filter or redirect it.
 logger = logging.getLogger("mcpbench")
 logger.setLevel(logging.INFO)
 
+# The three runner-format JSON files that ship with this script, covering single-server, 2-server multi-agent, and 3-server multi-agent tasks.
 DEFAULT_TASK_FILES = [
     "mcpbench_tasks_single_runner_format.json",
     "mcpbench_tasks_multi_2server_runner_format.json",
@@ -67,9 +71,11 @@ DEFAULT_TASK_FILES = [
 
 def load_tasks(path: str) -> List[Dict[str, Any]]:
     """
-    Flatten the nested runner-format JSON into a list of
-    {server_name, task} entries — same shape benchmark/runner.py uses.
+    Load tasks from a runner-format JSON file, 
+    flattening the server_tasks/groups into a list of dicts with "server_name" and "task" keys for easier processing.    
     """
+
+    # The runner format has a top-level "server_tasks" list, where each entry has a "server_name" and a list of "tasks".
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -87,6 +93,8 @@ def build_judge_provider() -> LLMProvider:
     Prefers Azure OpenAI; falls back to direct OpenAI. Matches the
     selection logic in benchmark/runner.py:execute_single_task_with_model.
     """
+
+    # The official benchmark uses the same judge LLM for all evaluation, so we build it once here and pass it to TaskEvaluator.
     if os.getenv("AZURE_OPENAI_API_KEY") and os.getenv("AZURE_OPENAI_ENDPOINT"):
         client = AsyncAzureOpenAI(
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
@@ -103,9 +111,42 @@ def build_judge_provider() -> LLMProvider:
     )
 
 
+def build_server_subset(task: Dict[str, Any], outer_server_name: str = "") -> List[str]:
+    """
+    Build the list of servers to activate for this task, based on required_servers and distraction_servers.
+    This mirrors the logic in benchmark/runner.py:execute_single_task_with_model for determining which servers to run with.
+    """
+
+    subset: List[str] = []
+    seen = set()
+
+    def add(name):
+        if name and name not in seen:
+            seen.add(name)
+            subset.append(name)
+
+    required = task.get("required_servers")
+    if isinstance(required, list):
+        for s in required:
+            add(s)
+    else:
+        sn = task.get("server_name") or outer_server_name or ""
+        if "+" in sn:
+            for s in sn.split("+"):
+                add(s.strip())
+        elif sn:
+            add(sn)
+
+    for s in task.get("distraction_servers", []) or []:
+        add(s)
+
+    return subset
+
+
 async def run_single_task(
     task_description: str,
     timeout: int,
+    server_subset: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Execute one task through the multi-agent system with trace capture.
@@ -113,10 +154,17 @@ async def run_single_task(
     Returns a dict with final_output and recorder snapshot, or an empty
     snapshot if the run timed out / crashed (so evaluation still runs).
     """
+
+    # The initial state includes the task description and a flag to enable trace capture.
+    # If server_subset is provided, we include it in the initial state so the graph can activate the correct servers.
+    initial_state = {"input": task_description, "_enable_trace": True}
+    if server_subset:
+        initial_state["_server_subset"] = server_subset
+
     start = time.time()
     try:
         state = await asyncio.wait_for(
-            run_graph({"input": task_description, "_enable_trace": True}),
+            run_graph(initial_state),
             timeout=timeout,
         )
     except asyncio.TimeoutError:
@@ -139,6 +187,7 @@ async def run_single_task(
             "error": str(e),
         }
 
+    # Pull the TraceRecorder data out of the state. This includes tool calls, plan parsing outcomes, and available tools.
     recorder = state.get("_recorder")
     snapshot = recorder.to_dict() if recorder is not None else None
     return {
@@ -160,6 +209,7 @@ async def evaluate_run(
     """
     Run the LLM judge + accuracy metrics on the recorder snapshot.
     """
+
     snapshot = run_result["recorder_snapshot"] or {
         "execution": {"total_rounds": 0, "planning_json_compliance": 1.0},
         "available_tools": {},
@@ -196,6 +246,9 @@ def build_result_record(
     Produce the per-task record ResultsAggregator expects.
     Mirrors the dict shape emitted by benchmark/runner.py:_evaluate_task_result.
     """
+
+    # The official benchmark's per-task records include the final_output
+    # and a snapshot of the TraceRecorder data (tool calls, plan parsing outcomes, available tools).
     snapshot = run_result["recorder_snapshot"] or {}
     token_usage = run_result.get("token_usage") or {}
     status = "completed" if run_result["status"] == "completed" and evaluation else "failed"
@@ -213,7 +266,7 @@ def build_result_record(
         "total_rounds": snapshot.get("execution", {}).get("total_rounds", 0),
         "evaluation": evaluation,
         "total_output_tokens": token_usage.get("output_tokens", 0),
-        "total_prompt_tokens": token_usage.get("prompt_tokens", 0),
+        "total_prompt_tokens": token_usage.get("input_tokens", 0),
         "total_tokens": token_usage.get("total_tokens", 0),
         "error": run_result.get("error"),
     }
@@ -229,6 +282,53 @@ def load_checkpoint(path: str) -> List[Dict[str, Any]]:
         return json.load(f)
 
 
+def aggregate_per_server(records: List[Dict[str, Any]], aggregator: ResultsAggregator) -> Dict[str, Any]:
+    """
+    Group per-task records by 'server_name' and run the official aggregator on each
+    group, so we can see which MCP domains the system is strong/weak in.
+
+    - Multi-server tasks (server_name like "Wikipedia+NASA Data") form their own group.
+    - Adds 'task_count' to each group so low-sample scores are visible.
+    - Prepends a `_summary` block with best/worst server by task_completion_score.
+    """
+
+    # Group records
+    by_server: Dict[str, List[Dict[str, Any]]] = {}
+    for r in records:
+        sn = r.get("server_name", "unknown") or "unknown"
+        by_server.setdefault(sn, []).append(r)
+
+    per_server: Dict[str, Any] = {}
+    for sn, sub_records in by_server.items():
+        m = aggregator.aggregate_current_metrics(sub_records)
+        m["task_count"] = len(sub_records)
+        per_server[sn] = m
+
+    if not per_server:
+        return {}
+
+    ranked = sorted(
+        per_server.items(),
+        key=lambda kv: kv[1].get("task_completion_score", 0),
+        reverse=True,
+    )
+    return {
+        "_summary": {
+            "total_servers": len(per_server),
+            "total_tasks": len(records),
+            "best_server": {
+                "name": ranked[0][0],
+                "task_completion_score": ranked[0][1].get("task_completion_score", 0),
+            },
+            "worst_server": {
+                "name": ranked[-1][0],
+                "task_completion_score": ranked[-1][1].get("task_completion_score", 0),
+            },
+        },
+        **dict(ranked),
+    }
+
+
 async def run_one_file(
     task_file: str,
     args: argparse.Namespace,
@@ -238,6 +338,7 @@ async def run_one_file(
     Run every task in one runner-format file, return the aggregated metrics
     (same flat schema as benchmark_results_*.json).
     """
+    
     tasks = load_tasks(task_file)
     logger.info("Loaded %d tasks from %s", len(tasks), os.path.basename(task_file))
 
@@ -270,12 +371,15 @@ async def run_one_file(
         else:
             task_description = task.get("task_description", "")
 
+        # Per-task server lifecycle: required + distractions only (mirrors official runner)
+        server_subset = build_server_subset(task, outer_server_name=server_name)
         logger.info(
-            "[%d/%d] %s (%s) — running", i, len(tasks), task_id, server_name
+            "[%d/%d] %s (%s) — running with %d servers: %s",
+            i, len(tasks), task_id, server_name, len(server_subset), server_subset
         )
 
         t_start = time.time()
-        run_result = await run_single_task(task_description, args.timeout)
+        run_result = await run_single_task(task_description, args.timeout, server_subset=server_subset)
         eval_start = time.time()
         try:
             evaluation = await evaluate_run(evaluator, task, task_description, run_result, use_fuzzy)
@@ -338,7 +442,7 @@ async def main(args: argparse.Namespace) -> None:
 
     evaluator = TaskEvaluator(
         build_judge_provider(),
-        enable_judge_stability=args.judge_stability,
+        enable_judge_stability=not args.disable_judge_stability,
     )
 
     all_metrics: Dict[str, Dict[str, Any]] = {}
@@ -361,6 +465,14 @@ async def main(args: argparse.Namespace) -> None:
         with open(detail_out, "w", encoding="utf-8") as f:
             json.dump(file_metrics["records"], f, indent=2, ensure_ascii=False)
         logger.info("Per-task records written: %s", detail_out)
+
+        # Per-server breakdown (always emitted) — shows which MCP domains the
+        # system handled well and which it struggled with.
+        per_server_out = per_file_out.replace(".json", "_per_server.json")
+        per_server = aggregate_per_server(file_metrics["records"], ResultsAggregator())
+        with open(per_server_out, "w", encoding="utf-8") as f:
+            json.dump(per_server, f, indent=2, ensure_ascii=False)
+        logger.info("Per-server metrics written: %s", per_server_out)
 
     with open(args.output, "w", encoding="utf-8") as f:
         json.dump(all_metrics, f, indent=2, ensure_ascii=False)
@@ -393,7 +505,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Take the first --limit tasks in file order instead of random sampling.",
     )
-    parser.add_argument("--timeout", type=int, default=600, help="Per-task timeout in seconds")
+    parser.add_argument("--timeout", type=int, default=1800, help="Per-task timeout in seconds")
     parser.add_argument("--checkpoint-every", type=int, default=5, help="Checkpoint every N tasks")
     parser.add_argument(
         "--disable-fuzzy",
@@ -401,9 +513,9 @@ def parse_args() -> argparse.Namespace:
         help="Use detailed task_description instead of fuzzy_description (default: fuzzy, matches official benchmark).",
     )
     parser.add_argument(
-        "--judge-stability",
+        "--disable-judge-stability",
         action="store_true",
-        help="Run 5 randomized judge passes per task (slower, more stable scores).",
+        help="Disable 5 randomized judge passes (default: enabled, matches official benchmark).",
     )
     return parser.parse_args()
 

@@ -40,10 +40,40 @@ initialized = False
 
 # Token budget controls — limits how much text enters the ReAct history
 MAX_OBSERVATION_CHARS = 100000   # Hard cap per tool observation
-MAX_HISTORY_CHARS = 90000      # Hard cap on total history passed to the LLM
+MAX_HISTORY_CHARS = 90000        # Hard cap on total history passed to the LLM
+
+# Per-observation budget AFTER head+tail compression. Mirrors official runner's
+# content_truncate_length=7000. Above this size we keep the head and tail
+# (where headers/metadata and totals/pagination usually live) and drop the middle.
+CONTENT_TRUNCATE_CHARS = 7000
+
+# Head/tail split — tail gets more weight because trailing records, recent
+# timestamps, totals and pagination tokens are usually richer signal than
+# upfront metadata.
+HEAD_FRACTION = 0.4
 
 # Max times the same (tool, args) pair may be blocked before forcing DONE.
 MAX_DUPLICATE_BLOCKS = 2
+
+
+def _head_tail_truncate(content: str, target_chars: int = CONTENT_TRUNCATE_CHARS) -> str:
+    """
+    Deterministic head+tail truncation. If `content` exceeds `target_chars`,
+    drops the middle and keeps both ends, with a marker showing how much was
+    dropped. Cheaper, faster, and more predictable than LLM-based summarization.
+    """
+    if len(content) <= target_chars:
+        return content
+
+    dropped = len(content) - target_chars
+    marker = f"\n... [middle truncated, {dropped} chars dropped] ...\n"
+    available = target_chars - len(marker)
+    if available <= 0:
+        return content[:target_chars]
+
+    head_chars = int(available * HEAD_FRACTION)
+    tail_chars = available - head_chars
+    return content[:head_chars] + marker + content[-tail_chars:]
 
 
 def get_command_path():
@@ -359,11 +389,14 @@ async def execute_single_task(state, task_id, selected_servers, max_steps: int =
                 # Asynchronous tool call with timeout
                 result_obj = await asyncio.wait_for(
                     server_manager.call_tool(tool_name, arguments),
-                    timeout=30
+                    timeout=180
                 )
 
                 observation = extract_text(result_obj)
-                observation = truncate(observation, MAX_OBSERVATION_CHARS)
+                # Head+tail compression: keeps headers/metadata AND tail
+                # (latest records, totals, pagination tokens) while dropping
+                # the middle. Same budget as the official runner (4000 chars).
+                observation = _head_tail_truncate(observation, target_chars=CONTENT_TRUNCATE_CHARS)
 
                 # Detect empty results by content, not length.
                 # For JSON responses, check if the parsed value is semantically empty.
@@ -449,7 +482,7 @@ async def _react_step(task_desc: str, formatted_tools: str, history_str: str) ->
             "history": history_str,
             "current_date": current_date_str(),
         }),
-        timeout=120
+        timeout=180
     )
 
     token_tracker.track("executor", raw_response)

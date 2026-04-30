@@ -60,7 +60,7 @@ async def select_mcp_server(task_id, task_desc, excluded=None, max_retries=5, in
                     "excluded_servers": json.dumps(excluded_list, ensure_ascii=False),
                     "current_date": current_date_str(),
                 }),
-                timeout=60
+                timeout=180
             )
             token_tracker.track("retrieval", raw_response)
             selection = _json_parser.parse(raw_response.content)

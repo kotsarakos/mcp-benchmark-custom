@@ -60,7 +60,7 @@ async def verifier_node(state: dict):
                 "verification_context": json.dumps(verification_context, ensure_ascii=False),
                 "current_date": current_date_str(),
             }),
-            timeout=120
+            timeout=180
         )
         
         token_tracker.track("verifier", raw_response)

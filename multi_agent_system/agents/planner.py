@@ -157,7 +157,7 @@ async def _generate_plan(state: dict, is_replan: bool = False) -> dict:
     try:
         raw_response = await asyncio.wait_for(
             chain.ainvoke(chain_inputs),
-            timeout=120
+            timeout=180
         )
         token_tracker.track("planner", raw_response)
 
@@ -286,7 +286,7 @@ async def handle_final_synthesis(state: dict) -> dict:
                 "collected_data": summary_context,
                 "current_date": current_date_str(),
             }),
-            timeout=120
+            timeout=180
         )
         token_tracker.track("planner", raw_response)
         response = _parse_with_tracking(raw_response.content, state)

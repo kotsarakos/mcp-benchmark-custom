@@ -76,7 +76,7 @@ async def answer_node(state: dict):
                 "execution_context": execution_context,
                 "current_date": current_date_str(),
             }),
-            timeout=120
+            timeout=180
         )
         
         token_tracker.track("answer", raw_response)

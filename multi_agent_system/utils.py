@@ -12,9 +12,19 @@ pipeline on every cycle. This module owns:
 
 import copy
 import logging
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
+
+
+def current_date_str() -> str:
+    """
+    Returns today's UTC date as YYYY-MM-DD. Injected into every agent prompt
+    so temporal reasoning ('past' vs 'future') is anchored to the wall clock,
+    not the model's training cutoff.
+    """
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 # Each key in the state dict has exactly one merge strategy.
 # These sets are read by merge_state() to decide how to apply agent updates.

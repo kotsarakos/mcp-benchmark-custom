@@ -11,6 +11,8 @@ from ..prompts.agent_prompts import (
     PLANNER_SYSTEM_PROMPT,
     PLANNER_REPLAN_PROMPT,
     PLANNER_FINAL_SYNTHESIS_PROMPT,
+    PLANNER_UNANSWERABLE_SYNTHESIS_PROMPT,
+    PLANNER_UNANSWERABILITY_CHECK_PROMPT,
     PLANNER_REASONING_STEP_PROMPT,
 )
 from ..token_tracker import token_tracker
@@ -20,6 +22,9 @@ from ..utils import (
     commit_verified_results,
     refresh_task_descriptions,
     record_failed_servers,
+    record_failure,
+    format_failure_history_for_prompt,
+    latest_error_types,
     is_reasoning_step,
     print_plan,
     print_step_execution,
@@ -46,7 +51,81 @@ _plan_chain = ChatPromptTemplate.from_template(PLANNER_SYSTEM_PROMPT) | llm
 _replan_chain = ChatPromptTemplate.from_template(PLANNER_REPLAN_PROMPT) | llm
 _reasoning_chain = ChatPromptTemplate.from_template(PLANNER_REASONING_STEP_PROMPT) | llm
 _synthesis_chain = ChatPromptTemplate.from_template(PLANNER_FINAL_SYNTHESIS_PROMPT) | llm
+_unanswerable_chain = ChatPromptTemplate.from_template(PLANNER_UNANSWERABLE_SYNTHESIS_PROMPT) | llm
+_unanswerability_check_chain = ChatPromptTemplate.from_template(PLANNER_UNANSWERABILITY_CHECK_PROMPT) | llm
 _json_parser = JsonOutputParser()
+
+_ACCESS_DENIED_KEYWORDS = frozenset([
+    "forbidden", "403", "401", "unauthorized", "access denied",
+    "permission denied", "not permitted", "access restricted",
+    "insufficient permissions", "no permission", "not authorized",
+])
+
+MAX_ACCESS_DENIED_REPLANS = 2
+
+# Trigger an LLM-based unanswerability check after this many replans on the same step.
+# Cheap enough (1 call) to run once when keyword detection missed the obstacle but
+# the failure pattern suggests the query may be structurally unanswerable.
+UNANSWERABILITY_CHECK_AFTER_REPLANS = 3
+
+# Number of consecutive verifier "impossible" verdicts before we conclude the
+# whole query cannot be answered.
+MAX_IMPOSSIBLE_VERDICTS = 2
+
+# Retry policy for handle_unanswerable_synthesis on timeout. Only TimeoutError
+# triggers a retry — other exceptions go straight to the structured fallback.
+UNANSWERABLE_SYNTHESIS_TIMEOUT = 60          # seconds per attempt
+UNANSWERABLE_SYNTHESIS_MAX_RETRIES = 2       # 1 initial + 2 retries = 3 attempts max
+UNANSWERABLE_SYNTHESIS_BACKOFF_BASE = 2.0    # seconds, doubled per retry
+
+
+async def _check_unanswerability(state: dict) -> tuple[bool, str]:
+    """
+    Ask an LLM whether the query is structurally unanswerable given the failure
+    history and available servers. Cheaper than spending more replan budget on a
+    query that has no chance. Returns (should_stop, reason).
+    Defaults to (False, "") on any error so we don't accidentally abort solvable queries.
+    """
+    try:
+        rich = state.get("_rich_inventory") or []
+        # Only send name + tool names; full descriptions blow up the prompt.
+        slim = [{"name": s.get("name"), "tools": s.get("tools", [])} for s in rich]
+        raw_response = await asyncio.wait_for(
+            _unanswerability_check_chain.ainvoke({
+                "original_query": state.get("input", ""),
+                "available_servers": json.dumps(slim, ensure_ascii=False),
+                "failure_history": format_failure_history_for_prompt(state.get("failure_history", [])),
+                "partial_data": json.dumps(state.get("completed_tasks_results", {}), ensure_ascii=False),
+                "current_date": current_date_str(),
+            }),
+            timeout=60
+        )
+        token_tracker.track("planner", raw_response)
+        parsed = _parse_with_tracking(raw_response.content, state)
+        decision = (parsed.get("decision") or "").lower()
+        reason = parsed.get("reason", "")
+        return (decision == "stop", reason)
+    except Exception as e:
+        logger.warning("Unanswerability check failed (defaulting to continue): %s", e)
+        return (False, "")
+
+
+def _is_access_denied_failure(state: dict) -> bool:
+    """Return True if the current failure looks like a server access restriction."""
+    # Fast path: structured failure_history already classifies error_type.
+    history = state.get("failure_history", [])
+    for e in reversed(history):
+        if isinstance(e, dict) and e.get("global_step") == state.get("_global_step", 0):
+            if e.get("error_type") == "access_denied":
+                return True
+            break
+    # Fallback: scan free-text reason + executor results.
+    sources = [state.get("last_failure_reason", "")]
+    for v in state.get("latest_execution_results", {}).values():
+        if isinstance(v, str):
+            sources.append(v)
+    combined = " ".join(sources).lower()
+    return any(kw in combined for kw in _ACCESS_DENIED_KEYWORDS)
 
 
 def _parse_with_tracking(raw_content: str, state: dict):
@@ -141,7 +220,7 @@ async def _generate_plan(state: dict, is_replan: bool = False) -> dict:
             "input": user_input,
             "completed_tasks": json.dumps(completed_results),
             "last_failure_reason": state.get("last_failure_reason", ""),
-            "failure_history": json.dumps(failures, ensure_ascii=False) if failures else "[]",
+            "failure_history": format_failure_history_for_prompt(failures),
             "available_servers": _available_servers_str,
             "current_date": today,
         }
@@ -286,7 +365,7 @@ async def handle_final_synthesis(state: dict) -> dict:
                 "collected_data": summary_context,
                 "current_date": current_date_str(),
             }),
-            timeout=180
+            timeout=60
         )
         token_tracker.track("planner", raw_response)
         response = _parse_with_tracking(raw_response.content, state)
@@ -302,6 +381,78 @@ async def handle_final_synthesis(state: dict) -> dict:
             v.get("final_answer", "") for v in collected.values() if v.get("final_answer")
         ) or "Final synthesis failed and no task answers were collected."
         return {"final_output": fallback}
+
+
+async def handle_unanswerable_synthesis(state: dict) -> dict:
+    """
+    Called when the system detects it cannot answer the query (e.g. repeated access denials).
+    Uses a dedicated prompt that honestly explains the failure reasons to the user.
+
+    On asyncio.TimeoutError the LLM call is retried up to
+    UNANSWERABLE_SYNTHESIS_MAX_RETRIES times with exponential backoff. Other
+    exceptions (JSON parse, network) skip retries and go to the structured fallback.
+    """
+    history = list(state.get("failure_history", []))
+    partial = state.get("completed_tasks_results", {})
+    failure_reasons_str = format_failure_history_for_prompt(history)
+
+    chain_inputs = {
+        "original_query": state.get("input", ""),
+        "failure_reasons": failure_reasons_str,
+        "partial_data": json.dumps(partial, ensure_ascii=False, indent=2) if partial else "None",
+        "current_date": current_date_str(),
+    }
+
+    last_exc: Exception | None = None
+    for attempt in range(UNANSWERABLE_SYNTHESIS_MAX_RETRIES + 1):
+        try:
+            raw_response = await asyncio.wait_for(
+                _unanswerable_chain.ainvoke(chain_inputs),
+                timeout=UNANSWERABLE_SYNTHESIS_TIMEOUT,
+            )
+            token_tracker.track("planner", raw_response)
+            response = _parse_with_tracking(raw_response.content, state)
+            return {
+                "final_output": response.get("answer", ""),
+                "messages": [{"role": "assistant", "content": "Unanswerable synthesis generated."}]
+            }
+        except asyncio.TimeoutError as e:
+            last_exc = e
+            if attempt < UNANSWERABLE_SYNTHESIS_MAX_RETRIES:
+                backoff = UNANSWERABLE_SYNTHESIS_BACKOFF_BASE * (2 ** attempt)
+                logger.warning(
+                    "Unanswerable synthesis timed out (attempt %d/%d) — retrying in %.1fs",
+                    attempt + 1, UNANSWERABLE_SYNTHESIS_MAX_RETRIES + 1, backoff,
+                )
+                await asyncio.sleep(backoff)
+                continue
+            logger.error(
+                "Unanswerable synthesis timed out after %d attempts — falling back.",
+                UNANSWERABLE_SYNTHESIS_MAX_RETRIES + 1,
+            )
+            break
+        except Exception as e:
+            last_exc = e
+            logger.error("Unanswerable synthesis failed (non-timeout): %s", e)
+            break
+
+    # Last-resort fallback: surface the most recent reason per failed sub-task.
+    bullets = []
+    for entry in history:
+        if isinstance(entry, dict):
+            tid = entry.get("task_id") or "(no task)"
+            etype = entry.get("error_type") or "unknown"
+            reason = entry.get("reason") or ""
+            bullets.append(f"- {tid} ({etype}): {reason}")
+        else:
+            bullets.append(f"- {entry}")
+    reasons_str = "\n".join(bullets) or f"Unknown error ({last_exc})"
+    return {
+        "final_output": (
+            "The system was unable to answer this query.\n"
+            f"Reasons:\n{reasons_str}"
+        )
+    }
 
 
 async def handle_reasoning_step(state: dict) -> dict:
@@ -330,7 +481,7 @@ async def handle_reasoning_step(state: dict) -> dict:
                 "reasoning_tasks": json.dumps(reasoning_tasks, indent=2, ensure_ascii=False),
                 "current_date": current_date_str(),
             }),
-            timeout=120
+            timeout=60
         )
         token_tracker.track("planner", raw_response)
         response = _parse_with_tracking(raw_response.content, state)
@@ -456,6 +607,8 @@ async def planner_node(state: dict) -> dict:
         global_step = state.get("_global_step", 0)
         logger.info("STEP %d PASSED", global_step)
         state["_replans"] = 0
+        state["_access_denied_count"] = 0
+        state["_impossible_count"] = 0
         commit_verified_results(state)
 
         state["last_failure_reason"] = ""
@@ -482,6 +635,33 @@ async def planner_node(state: dict) -> dict:
     if verification_status == "impossible":
         global_step = state.get("_global_step", 0)
         logger.info("STEP %d IMPOSSIBLE -- committing partial results", global_step)
+        state["_access_denied_count"] = 0
+
+        # Record the impossible verdict per current-step task so the unanswerable
+        # synthesis can map "which sub-task was declared impossible" to the reason.
+        if state.get("last_failure_reason"):
+            record_failure(state, source="verifier", explicit_error_type="impossible")
+
+        # Track repeated "impossible" verdicts. The verifier itself is telling us
+        # this can't be done — if it says so multiple times for the same query,
+        # don't keep planning new steps that will hit the same wall.
+        state["_impossible_count"] = state.get("_impossible_count", 0) + 1
+        if state["_impossible_count"] >= MAX_IMPOSSIBLE_VERDICTS:
+            logger.error(
+                "Verifier returned 'impossible' %d times — stopping and synthesizing explanation.",
+                state["_impossible_count"],
+            )
+            # Commit whatever the impossible step produced so it's available to the synthesis.
+            package = state.get("latest_verification_package", {})
+            for task in package.get("tasks_analysis", []):
+                t_id = task.get("task_id")
+                if t_id:
+                    state.setdefault("completed_tasks_results", {})[t_id] = {
+                        "final_answer": task.get("final_answer", ""),
+                        "summary": task.get("summary", ""),
+                    }
+            result = await handle_unanswerable_synthesis(state)
+            return merge_state(state, result)
         package = state.get("latest_verification_package", {})
         for task in package.get("tasks_analysis", []):
             t_id = task.get("task_id")
@@ -519,12 +699,61 @@ async def planner_node(state: dict) -> dict:
         failure_reason = state.get("last_failure_reason", "")
         if failure_reason:
             logger.warning("Failure reason: %s", failure_reason)
-            history = state.setdefault("failure_history", [])
-            if not history or history[-1] != failure_reason:
-                history.append(failure_reason)
+            record_failure(state, source="verifier")
+            logger.debug(
+                "Recent error_types: %s",
+                latest_error_types(state.get("failure_history", []), n=4),
+            )
 
         # Commit any partially-approved tasks (e.g. task_1 PASS, task_2 FAIL)
         commit_verified_results(state)
+
+        # Early exit when the server repeatedly denies access — replanning with
+        # different sub-tasks won't help, so synthesize an explanation instead.
+        # Runs BEFORE the max-replans guard so a 2nd access failure on a low
+        # max_replans budget still routes to the unanswerable explanation.
+        if _is_access_denied_failure(state):
+            state["_access_denied_count"] = state.get("_access_denied_count", 0) + 1
+            logger.warning(
+                "Access-denied failure detected (count: %d/%d).",
+                state["_access_denied_count"], MAX_ACCESS_DENIED_REPLANS,
+            )
+            if state["_access_denied_count"] >= MAX_ACCESS_DENIED_REPLANS:
+                logger.error(
+                    "Repeated access-denied failures — stopping replans and synthesizing explanation."
+                )
+                result = await handle_unanswerable_synthesis(state)
+                return merge_state(state, result)
+
+        # General-purpose unanswerability check: after several replans without
+        # progress, ask an LLM whether the query is structurally unanswerable
+        # (capability gap, fictional data, contradictory request, etc.). Runs
+        # ONCE per query to bound cost — guarded by `_unanswerability_checked`.
+        if (
+            replans >= UNANSWERABILITY_CHECK_AFTER_REPLANS
+            and not state.get("_unanswerability_checked")
+        ):
+            state["_unanswerability_checked"] = True
+            should_stop, reason = await _check_unanswerability(state)
+            if should_stop:
+                logger.error("Unanswerability check voted STOP: %s", reason)
+                # Persist the LLM's verdict as a structured entry so the synthesis
+                # prompt sees it alongside per-task failures.
+                state.setdefault("failure_history", []).append({
+                    "task_id": None,
+                    "task_description": None,
+                    "server": None,
+                    "tool": None,
+                    "error_type": "impossible",
+                    "reason": f"Unanswerability check: {reason}",
+                    "source": "unanswerability_check",
+                    "replan_round": int(state.get("_replans", 0) or 0),
+                    "global_step": int(state.get("_global_step", 0) or 0),
+                })
+                result = await handle_unanswerable_synthesis(state)
+                return merge_state(state, result)
+            else:
+                logger.info("Unanswerability check voted CONTINUE — proceeding with replan.")
 
         if replans > max_replans:
             logger.error("MAX REPLANS (%d) REACHED -- stopping.", max_replans)

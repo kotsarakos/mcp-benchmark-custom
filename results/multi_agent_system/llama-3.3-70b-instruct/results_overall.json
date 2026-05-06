@@ -1,0 +1,31 @@
+{
+  "Rule-based": {
+    "Schema Understanding": {
+      "Valid Tool Name Rate": 0.994,
+      "Schema Compliance": 0.974,
+      "Execution Success": 0.963
+    }
+  },
+  "LLM Judge": {
+    "Task Completion": {
+      "Task Fulfillment": 0.372,
+      "Information Grounding": 0.485
+    },
+    "Tool Usage": {
+      "Tool Appropriateness": 0.506,
+      "Parameter Accuracy": 0.473
+    },
+    "Planning Effectiveness": {
+      "Dependency Awareness": 0.328,
+      "Parallelism and Efficiency": 0.241
+    }
+  },
+  "Efficiency_metrics": {
+    "avg_total_tokens": 406200,
+    "avg_prompt_tokens": 388600,
+    "avg_output_tokens": 17600,
+    "avg_tool_calls_per_task": 45.1,
+    "avg_total_rounds": 4.28
+  },
+  "Overall Score": 0.545
+}

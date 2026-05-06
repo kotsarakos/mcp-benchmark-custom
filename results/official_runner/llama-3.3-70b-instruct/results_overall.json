@@ -1,24 +1,31 @@
 {
-  "Task Completion": {
-    "Task Fulfillment": 0.307,
-    "Information Grounding": 0.48,
-    "_domain_avg": 0.393
+  "Rule-based": {
+    "Schema Understanding": {
+      "Valid Tool Name Rate": 0.98,
+      "Schema Compliance": 0.901,
+      "Execution Success": 0.92
+    }
   },
-  "Tool Usage": {
-    "Tool Appropriateness": 0.59,
-    "Parameter Accuracy": 0.514,
-    "_domain_avg": 0.552
+  "LLM Judge": {
+    "Task Completion": {
+      "Task Fulfillment": 0.307,
+      "Information Grounding": 0.48
+    },
+    "Tool Usage": {
+      "Tool Appropriateness": 0.59,
+      "Parameter Accuracy": 0.514
+    },
+    "Planning Effectiveness": {
+      "Dependency Awareness": 0.324,
+      "Parallelism and Efficiency": 0.225
+    }
   },
-  "Planning Effectiveness": {
-    "Dependency Awareness": 0.324,
-    "Parallelism and Efficiency": 0.225,
-    "_domain_avg": 0.275
-  },
-  "Schema Understanding": {
-    "Valid Tool Name Rate": 0.98,
-    "Schema Compliance": 0.901,
-    "Execution Success": 0.92,
-    "_domain_avg": 0.934
+  "Efficiency_metrics": {
+    "avg_total_tokens": 269600,
+    "avg_prompt_tokens": 265800,
+    "avg_output_tokens": 3700,
+    "avg_tool_calls_per_task": 30.4,
+    "avg_total_rounds": 6.96
   },
   "Overall Score": 0.538
 }

@@ -92,6 +92,10 @@ FAILURE DIAGNOSIS (apply these rules to decide your next move):
 4. "excluded server" or repeated tool failure on the same server:
    - Rephrase the task description generically so the Retrieval Agent picks a different server.
    - Do NOT name any server or tool. describe WHAT data is needed.
+5. Forbidden content / policy violation:
+   - Watch failure history and if the same task repeatedly fails for this reason, it may be impossible to complete. Flag it as "impossible" in the feedback to the Verifier and do not replan endlessly.
+   - Terminate if you see multiple different tasks failing for this reason, as this may indicate a systemic issue with the system's content policies rather than a problem with the plan.
+   - Return done=true with an empty step and explain in the feedback that the query cannot be completed due to content policies. Do NOT attempt to replan around this.   
 5. VERIFIER REJECTED answer as "wrong" or "inconsistent":
    - Reconsider the decomposition. The previous approach was fetching the wrong data. Target the exact fact the user asked for.
 
@@ -221,6 +225,101 @@ OUTPUT FORMAT (Strict JSON, no other keys, no markdown fences around the JSON):
 {{
   "answer": "Your detailed final response here, following Step 3 formatting and including Sources.",
   "status": "complete"
+}}
+"""
+
+PLANNER_UNANSWERABILITY_CHECK_PROMPT = """You are a Planner agent deciding whether a multi-agent system should KEEP TRYING or STOP and admit it cannot answer a query.
+
+CURRENT_DATE: {current_date}
+
+ORIGINAL USER QUERY: {original_query}
+
+AVAILABLE MCP SERVERS (with their tools): {available_servers}
+
+FAILURE HISTORY (every reason the system has failed across multiple replans): {failure_history}
+
+PARTIAL RESULTS COLLECTED SO FAR: {partial_data}
+
+DECISION CRITERIA — vote STOP if ANY of the following is clearly true:
+  1. The query asks for an action that NO available server can perform (capability gap).
+  2. The failures consistently indicate access/permission/forbidden errors that won't change with a different sub-task.
+  3. The query asks for data that does not exist (fictional entities, future events that cannot be predicted, contradictory constraints).
+  4. The same failure has occurred 3+ times across DIFFERENT sub-task approaches — meaning the obstacle is structural, not tactical.
+  5. The verifier has marked steps as "impossible" repeatedly.
+
+Vote CONTINUE if:
+  - The failures look transient (timeouts, rate limits, empty results from one tool but other tools weren't tried).
+  - Clearly different approaches haven't been attempted yet.
+  - The available servers DO contain tools that could plausibly answer the query.
+
+OUTPUT FORMAT (Strict JSON, no markdown fences):
+{{
+  "decision": "stop" | "continue",
+  "reason": "Concise explanation of why you voted this way. If 'stop', name the specific structural obstacle (e.g., 'no server provides geological survey data', 'NASA server denies write access', 'query asks for events in the year 2099 which cannot be retrieved')."
+}}
+"""
+
+
+PLANNER_UNANSWERABLE_SYNTHESIS_PROMPT = """You are the Final Synthesis Agent producing the user-facing answer when a query could not be fully completed. Your output is graded by an external judge on TASK_FULFILLMENT and GROUNDING — be faithful, complete, and format-compliant.
+
+CURRENT_DATE: {current_date}
+
+ORIGINAL USER QUERY: {original_query}
+
+FAILURE REASONS (what the system tried and why it failed, mapped to sub-questions when possible): {failure_reasons}
+
+PARTIAL DATA COLLECTED (raw data successfully retrieved — may be empty): {partial_data}
+
+MISSION:
+The query above may have MULTIPLE parts. Some parts may have been completed successfully (see PARTIAL DATA), others may have been blocked (see FAILURE REASONS). Produce one coherent answer that (a) answers every part you can with verbatim data, and (b) honestly explains every part that was blocked, mapping each failure to the specific sub-question it blocked.
+
+STEP 1 — Decompose the ORIGINAL USER QUERY into its individual sub-questions / requirements. Include every conditional ("if X then Y"), comparison, and named entity as a separate item.
+
+STEP 2 — For each sub-question, classify it as:
+  - ANSWERED: data exists in PARTIAL DATA → give the verbatim value (numbers, dates, names, IDs exact).
+  - BLOCKED: no data exists for it → quote the specific failure reason from FAILURE REASONS and name the server/tool that failed when available (e.g., "NASA.get_notifications returned 503", "Wikipedia denied access").
+
+STEP 3 — Compose the response.
+
+GROUNDING RULES (every claim must trace to PARTIAL DATA — judge penalizes drift):
+  - VERBATIM VALUES: copy every number, date, name, identifier, and unit BYTE-EXACT from PARTIAL DATA. Do NOT round (78,260.6 stays 78,260.6, never 78,261). Do NOT reformat dates ("4 March 1968" stays "4 March 1968"). Do NOT translate or paraphrase named entities.
+  - NO FABRICATION: if a specific value is not literally present in PARTIAL DATA, do NOT invent it — mark that sub-question BLOCKED instead.
+  - NO CROSS-TOOL SUBSTITUTION: if PARTIAL DATA contains data from tool A but the sub-question required tool B (which failed), do NOT use A's data to answer B's question. Mark the sub-question BLOCKED with the tool-B failure reason.
+  - INLINE IDENTIFIERS: if PARTIAL DATA contains URLs, API endpoints, record IDs, commit SHAs, DOIs, or similar stable identifiers next to a fact, include them inline (e.g., "price 78,260.6 (source: /api/v5/market/ticker?instId=BTC-USDT)").
+
+TASK_FULFILLMENT RULES (preserve every requirement):
+  - Cover the FULL query. If the query asks for "name AND birth date AND nationality", address all three (each ANSWERED or BLOCKED).
+  - CONDITIONAL / NEGATIVE CASES: if the query says "if X then Y", explicitly state whether X happened. If X did NOT happen or could not be determined, write "X could not be determined per available data, so Y is not applicable."
+  - Do NOT pretend the whole query failed if you have valid data for part of it.
+  - Do NOT pretend the whole query succeeded if some parts were blocked.
+
+FORMAT-MATCH RULES (judge grades format compliance):
+  - If the user query asks for a SPECIFIC output format (JSON object/array, table, bullet list, named-field schema, single paragraph, etc.), the "answer" field MUST follow that exact format inside the string. For BLOCKED parts inside a structured format, use a clear placeholder like "unavailable — [reason]" rather than omitting the field.
+  - If no format is specified, default to clear prose: lead with the parts you CAN answer (with values), then a short "Could not retrieve" section listing each blocked sub-question with its specific failure reason.
+  - Be concise. No filler ("I apologize", "Unfortunately the system…").
+
+STEP 4 — Self-check before returning (verify all five):
+  - Did I address every requirement from Step 1, including conditionals?
+  - Are all numbers, dates, names copied VERBATIM from PARTIAL DATA?
+  - Did I avoid using data from tool A to answer a question that required failed tool B?
+  - Did I match the format the user requested?
+  - Is `status` set correctly (see below)?
+
+STATUS FIELD:
+  - "complete"     → every sub-question is ANSWERED.
+  - "partial"      → at least one ANSWERED and at least one BLOCKED.
+  - "unanswerable" → every sub-question is BLOCKED (PARTIAL DATA is empty or unusable).
+
+EXAMPLE (illustrative):
+  Query: "When was Einstein born and when was Hawking born?"
+  PARTIAL DATA has Einstein's birth date "14 March 1879" but Hawking's tool call was denied (Wikipedia.get_summary → 403).
+  Good answer: "Einstein was born on 14 March 1879. Hawking's birth date is unavailable — Wikipedia.get_summary denied access (403)."
+  status: "partial"
+
+OUTPUT FORMAT (Strict JSON, no markdown fences):
+{{
+  "answer": "Final user-facing response following the FORMAT-MATCH rules above.",
+  "status": "complete" | "partial" | "unanswerable"
 }}
 """
 

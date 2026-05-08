@@ -39,8 +39,8 @@ server_manager = None
 initialized = False
 
 # Token budget controls — limits how much text enters the ReAct history
-MAX_OBSERVATION_CHARS = 100000   # Hard cap per tool observation
-MAX_HISTORY_CHARS = 90000        # Hard cap on total history passed to the LLM
+MAX_OBSERVATION_CHARS = 50000   # Hard cap per tool observation
+MAX_HISTORY_CHARS = 40000        # Hard cap on total history passed to the LLM
 
 # Per-observation budget AFTER head+tail compression. Mirrors official runner's
 # content_truncate_length=7000. Above this size we keep the head and tail
@@ -50,7 +50,7 @@ CONTENT_TRUNCATE_CHARS = 7000
 # Head/tail split — tail gets more weight because trailing records, recent
 # timestamps, totals and pagination tokens are usually richer signal than
 # upfront metadata.
-HEAD_FRACTION = 0.4
+HEAD_FRACTION = 0.3
 
 # Max times the same (tool, args) pair may be blocked before forcing DONE.
 MAX_DUPLICATE_BLOCKS = 2
@@ -389,7 +389,7 @@ async def execute_single_task(state, task_id, selected_servers, max_steps: int =
                 # Asynchronous tool call with timeout
                 result_obj = await asyncio.wait_for(
                     server_manager.call_tool(tool_name, arguments),
-                    timeout=180
+                    timeout=120
                 )
 
                 observation = extract_text(result_obj)
@@ -482,7 +482,7 @@ async def _react_step(task_desc: str, formatted_tools: str, history_str: str) ->
             "history": history_str,
             "current_date": current_date_str(),
         }),
-        timeout=180
+        timeout=120
     )
 
     token_tracker.track("executor", raw_response)

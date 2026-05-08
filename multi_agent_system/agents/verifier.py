@@ -60,7 +60,7 @@ async def verifier_node(state: dict):
                 "verification_context": json.dumps(verification_context, ensure_ascii=False),
                 "current_date": current_date_str(),
             }),
-            timeout=180
+            timeout=120
         )
         
         token_tracker.track("verifier", raw_response)
@@ -83,10 +83,16 @@ async def verifier_node(state: dict):
         else:
             verification_status = "fail"
 
-        # Prepare the output with verification status and reasons for failure if applicable
+        # Prepare the output with verification status and reasons for failure if applicable.
+        # For "impossible" we also surface the feedback so failure_history captures *why*
+        # the verifier judged the step unsatisfiable.
         output = {
             "verification_status": verification_status,
-            "last_failure_reason": str(result.get("feedback", "")) if verification_status == "fail" else ""
+            "last_failure_reason": (
+                str(result.get("feedback", ""))
+                if verification_status in ("fail", "impossible")
+                else ""
+            )
         }
 
         # If we have approved tasks, push them to final_history

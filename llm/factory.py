@@ -277,7 +277,15 @@ class LLMFactory:
                 base_url="https://openrouter.ai/api/v1",
                 model_name="google/gemma-4-31b-it"
             )
-            
+
+            configs["llama-3.3-70b-instruct"] = ModelConfig(
+                name="llama-3.3-70b-instruct",
+                provider_type="openrouter",
+                api_key=os.getenv("OPENROUTER_API_KEY"),
+                base_url="https://openrouter.ai/api/v1",
+                model_name="meta-llama/llama-3.3-70b-instruct"
+            )
+
             configs["qwq-32b"] = ModelConfig(
                 name="qwq-32b",
                 provider_type="openrouter",
@@ -308,6 +316,14 @@ class LLMFactory:
                 api_key=os.getenv("OPENROUTER_API_KEY"),
                 base_url="https://openrouter.ai/api/v1",
                 model_name="google/gemini-2.5-pro"
+            )
+
+            configs["qwen3.5-9b"] = ModelConfig(
+                name="qwen3.5-9b",
+                provider_type="openrouter",
+                api_key=os.getenv("OPENROUTER_API_KEY"),
+                base_url="https://openrouter.ai/api/v1",
+                model_name="qwen/qwen3.5-9b"
             )
         
         # Local vLLM models

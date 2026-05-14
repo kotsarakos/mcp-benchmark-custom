@@ -14,7 +14,7 @@
   "Medical Calculator+FruityVice+BioMCP": {
     "task_completion_score": 8.3,
     "tool_selection_score": 9.15,
-    "planning_effectiveness_and_efficiency_score": 8.2,
+    "planning_effectiveness_and_efficiency_score": 8.05,
     "task_fulfillment": 8.25,
     "grounding": 8.850000000000001,
     "tool_appropriateness": 9.100000000000001,
@@ -38,7 +38,7 @@
   "Scientific Computing+BioMCP+Math MCP": {
     "task_completion_score": 7.05,
     "tool_selection_score": 6.4,
-    "planning_effectiveness_and_efficiency_score": 5.15,
+    "planning_effectiveness_and_efficiency_score": 3.9000000000000004,
     "task_fulfillment": 6.9,
     "grounding": 7.699999999999999,
     "tool_appropriateness": 6.0,
@@ -62,7 +62,7 @@
   "Medical Calculator+Wikipedia+FruityVice": {
     "task_completion_score": 6.449999999999999,
     "tool_selection_score": 6.0,
-    "planning_effectiveness_and_efficiency_score": 4.45,
+    "planning_effectiveness_and_efficiency_score": 3.625,
     "task_fulfillment": 5.199999999999999,
     "grounding": 7.199999999999999,
     "tool_appropriateness": 6.1,
@@ -86,7 +86,7 @@
   "NASA Data+Google Maps+Wikipedia": {
     "task_completion_score": 4.85,
     "tool_selection_score": 5.55,
-    "planning_effectiveness_and_efficiency_score": 3.6,
+    "planning_effectiveness_and_efficiency_score": 3.375,
     "task_fulfillment": 3.75,
     "grounding": 6.300000000000001,
     "tool_appropriateness": 6.1,
@@ -134,7 +134,7 @@
   "Metropolitan Museum+Huge Icons+Wikipedia": {
     "task_completion_score": 4.25,
     "tool_selection_score": 4.15,
-    "planning_effectiveness_and_efficiency_score": 2.5,
+    "planning_effectiveness_and_efficiency_score": 2.225,
     "task_fulfillment": 2.25,
     "grounding": 6.15,
     "tool_appropriateness": 5.4,
@@ -158,7 +158,7 @@
   "Paper Search+Call for Papers+Wikipedia": {
     "task_completion_score": 4.0,
     "tool_selection_score": 4.05,
-    "planning_effectiveness_and_efficiency_score": 3.5999999999999996,
+    "planning_effectiveness_and_efficiency_score": 3.7,
     "task_fulfillment": 3.3499999999999996,
     "grounding": 4.7,
     "tool_appropriateness": 4.7,
@@ -182,7 +182,7 @@
   "Hugging Face+Paper Search+Wikipedia": {
     "task_completion_score": 3.2,
     "tool_selection_score": 3.25,
-    "planning_effectiveness_and_efficiency_score": 3.25,
+    "planning_effectiveness_and_efficiency_score": 2.7249999999999996,
     "task_fulfillment": 3.05,
     "grounding": 4.85,
     "tool_appropriateness": 4.45,
@@ -206,7 +206,7 @@
   "OpenAPI Explorer+Paper Search+Hugging Face": {
     "task_completion_score": 2.8499999999999996,
     "tool_selection_score": 2.8499999999999996,
-    "planning_effectiveness_and_efficiency_score": 3.4,
+    "planning_effectiveness_and_efficiency_score": 3.5,
     "task_fulfillment": 3.9,
     "grounding": 4.1,
     "tool_appropriateness": 5.1,

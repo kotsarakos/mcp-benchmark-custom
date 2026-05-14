@@ -14,7 +14,7 @@
   "Math MCP": {
     "task_completion_score": 9.100000000000001,
     "tool_selection_score": 8.45,
-    "planning_effectiveness_and_efficiency_score": 6.25,
+    "planning_effectiveness_and_efficiency_score": 7.9,
     "task_fulfillment": 9.9482142857,
     "grounding": 9.25,
     "tool_appropriateness": 9.05,
@@ -38,7 +38,7 @@
   "Time MCP": {
     "task_completion_score": 8.8,
     "tool_selection_score": 9.399999999999999,
-    "planning_effectiveness_and_efficiency_score": 5.45,
+    "planning_effectiveness_and_efficiency_score": 7.525,
     "task_fulfillment": 9.4482142857,
     "grounding": 9.5,
     "tool_appropriateness": 9.3,
@@ -62,7 +62,7 @@
   "Medical Calculator": {
     "task_completion_score": 8.3,
     "tool_selection_score": 8.4,
-    "planning_effectiveness_and_efficiency_score": 6.6,
+    "planning_effectiveness_and_efficiency_score": 8.05,
     "task_fulfillment": 9.0482142857,
     "grounding": 8.8,
     "tool_appropriateness": 9.45,
@@ -86,7 +86,7 @@
   "Unit Converter": {
     "task_completion_score": 7.9,
     "tool_selection_score": 8.649999999999999,
-    "planning_effectiveness_and_efficiency_score": 4.4,
+    "planning_effectiveness_and_efficiency_score": 5.9,
     "task_fulfillment": 8.1482142857,
     "grounding": 9.45,
     "tool_appropriateness": 7.8,
@@ -110,7 +110,7 @@
   "Reddit": {
     "task_completion_score": 6.45,
     "tool_selection_score": 6.9,
-    "planning_effectiveness_and_efficiency_score": 3.9000000000000004,
+    "planning_effectiveness_and_efficiency_score": 5.975,
     "task_fulfillment": 7.1482142857,
     "grounding": 7.1,
     "tool_appropriateness": 8.6,
@@ -134,7 +134,7 @@
   "OKX Exchange": {
     "task_completion_score": 6.45,
     "tool_selection_score": 8.5,
-    "planning_effectiveness_and_efficiency_score": 4.199999999999999,
+    "planning_effectiveness_and_efficiency_score": 5.9,
     "task_fulfillment": 6.7482142857,
     "grounding": 7.5,
     "tool_appropriateness": 9.7,
@@ -158,7 +158,7 @@
   "FruityVice": {
     "task_completion_score": 6.35,
     "tool_selection_score": 9.4,
-    "planning_effectiveness_and_efficiency_score": 2.5500000000000003,
+    "planning_effectiveness_and_efficiency_score": 4.225,
     "task_fulfillment": 4.4982142857,
     "grounding": 9.8,
     "tool_appropriateness": 9.2,
@@ -182,7 +182,7 @@
   "Call for Papers": {
     "task_completion_score": 6.25,
     "tool_selection_score": 5.35,
-    "planning_effectiveness_and_efficiency_score": 2.35,
+    "planning_effectiveness_and_efficiency_score": 4.55,
     "task_fulfillment": 4.6982142857,
     "grounding": 9.8,
     "tool_appropriateness": 9.1,
@@ -206,7 +206,7 @@
   "Huge Icons": {
     "task_completion_score": 6.05,
     "tool_selection_score": 7.3999999999999995,
-    "planning_effectiveness_and_efficiency_score": 3.6,
+    "planning_effectiveness_and_efficiency_score": 5.05,
     "task_fulfillment": 6.4482142857,
     "grounding": 7.0,
     "tool_appropriateness": 7.8,
@@ -230,7 +230,7 @@
   "BioMCP": {
     "task_completion_score": 5.8,
     "tool_selection_score": 4.95,
-    "planning_effectiveness_and_efficiency_score": 3.45,
+    "planning_effectiveness_and_efficiency_score": 5.074999999999999,
     "task_fulfillment": 6.4482142857,
     "grounding": 6.5,
     "tool_appropriateness": 5.8,
@@ -254,7 +254,7 @@
   "National Parks": {
     "task_completion_score": 5.75,
     "tool_selection_score": 5.1,
-    "planning_effectiveness_and_efficiency_score": 3.1,
+    "planning_effectiveness_and_efficiency_score": 4.75,
     "task_fulfillment": 5.8482142857,
     "grounding": 7.1,
     "tool_appropriateness": 5.1,
@@ -278,7 +278,7 @@
   "OSINT Intelligence": {
     "task_completion_score": 5.35,
     "tool_selection_score": 7.9,
-    "planning_effectiveness_and_efficiency_score": 1.15,
+    "planning_effectiveness_and_efficiency_score": 2.8,
     "task_fulfillment": 2.5982142857,
     "grounding": 9.7,
     "tool_appropriateness": 6.3,
@@ -302,7 +302,7 @@
   "Google Maps": {
     "task_completion_score": 5.3,
     "tool_selection_score": 4.75,
-    "planning_effectiveness_and_efficiency_score": 2.25,
+    "planning_effectiveness_and_efficiency_score": 4.2,
     "task_fulfillment": 4.0982142857,
     "grounding": 8.0,
     "tool_appropriateness": 6.1,
@@ -326,7 +326,7 @@
   "DEX Paprika": {
     "task_completion_score": 5.05,
     "tool_selection_score": 6.55,
-    "planning_effectiveness_and_efficiency_score": 3.6999999999999997,
+    "planning_effectiveness_and_efficiency_score": 5.25,
     "task_fulfillment": 5.4982142857,
     "grounding": 6.35,
     "tool_appropriateness": 7.1,
@@ -350,7 +350,7 @@
   "NixOS": {
     "task_completion_score": 5.0,
     "tool_selection_score": 6.15,
-    "planning_effectiveness_and_efficiency_score": 2.3,
+    "planning_effectiveness_and_efficiency_score": 4.075,
     "task_fulfillment": 4.7482142857,
     "grounding": 6.8,
     "tool_appropriateness": 6.0,
@@ -374,7 +374,7 @@
   "Metropolitan Museum": {
     "task_completion_score": 5.0,
     "tool_selection_score": 6.45,
-    "planning_effectiveness_and_efficiency_score": 3.0,
+    "planning_effectiveness_and_efficiency_score": 4.75,
     "task_fulfillment": 5.5982142857,
     "grounding": 5.7,
     "tool_appropriateness": 6.95,
@@ -398,7 +398,7 @@
   "Scientific Computing": {
     "task_completion_score": 4.75,
     "tool_selection_score": 5.35,
-    "planning_effectiveness_and_efficiency_score": 3.0,
+    "planning_effectiveness_and_efficiency_score": 4.375,
     "task_fulfillment": 6.5482142857,
     "grounding": 4.8,
     "tool_appropriateness": 5.8,
@@ -422,7 +422,7 @@
   "NASA Data": {
     "task_completion_score": 4.699999999999999,
     "tool_selection_score": 5.55,
-    "planning_effectiveness_and_efficiency_score": 2.8,
+    "planning_effectiveness_and_efficiency_score": 4.25,
     "task_fulfillment": 5.1482142857,
     "grounding": 5.6,
     "tool_appropriateness": 6.2,
@@ -446,7 +446,7 @@
   "Car Price Evaluator": {
     "task_completion_score": 4.550000000000001,
     "tool_selection_score": 7.5,
-    "planning_effectiveness_and_efficiency_score": 2.0500000000000003,
+    "planning_effectiveness_and_efficiency_score": 3.725,
     "task_fulfillment": 3.3482142857,
     "grounding": 7.8,
     "tool_appropriateness": 6.45,
@@ -470,7 +470,7 @@
   "Context7": {
     "task_completion_score": 4.449999999999999,
     "tool_selection_score": 4.75,
-    "planning_effectiveness_and_efficiency_score": 4.65,
+    "planning_effectiveness_and_efficiency_score": 6.2,
     "task_fulfillment": 5.3482142857,
     "grounding": 4.9,
     "tool_appropriateness": 6.9,
@@ -494,7 +494,7 @@
   "Wikipedia": {
     "task_completion_score": 4.35,
     "tool_selection_score": 4.1000000000000005,
-    "planning_effectiveness_and_efficiency_score": 2.5,
+    "planning_effectiveness_and_efficiency_score": 4.225,
     "task_fulfillment": 5.8982142857,
     "grounding": 5.55,
     "tool_appropriateness": 5.0,
@@ -518,7 +518,7 @@
   "Game Trends": {
     "task_completion_score": 4.3,
     "tool_selection_score": 4.8,
-    "planning_effectiveness_and_efficiency_score": 1.6,
+    "planning_effectiveness_and_efficiency_score": 3.2,
     "task_fulfillment": 3.4982142857,
     "grounding": 7.6,
     "tool_appropriateness": 3.7,
@@ -542,7 +542,7 @@
   "Bibliomantic": {
     "task_completion_score": 4.1499999999999995,
     "tool_selection_score": 5.0,
-    "planning_effectiveness_and_efficiency_score": 2.8,
+    "planning_effectiveness_and_efficiency_score": 4.324999999999999,
     "task_fulfillment": 4.4982142857,
     "grounding": 5.55,
     "tool_appropriateness": 5.5,
@@ -566,7 +566,7 @@
   "OpenAPI Explorer": {
     "task_completion_score": 3.9499999999999997,
     "tool_selection_score": 5.199999999999999,
-    "planning_effectiveness_and_efficiency_score": 3.2,
+    "planning_effectiveness_and_efficiency_score": 4.65,
     "task_fulfillment": 4.4982142857,
     "grounding": 4.9,
     "tool_appropriateness": 5.2,
@@ -590,7 +590,7 @@
   "Weather Data": {
     "task_completion_score": 3.7,
     "tool_selection_score": 6.85,
-    "planning_effectiveness_and_efficiency_score": 1.95,
+    "planning_effectiveness_and_efficiency_score": 3.4,
     "task_fulfillment": 3.0482142857,
     "grounding": 5.8,
     "tool_appropriateness": 4.4,
@@ -614,7 +614,7 @@
   "Hugging Face": {
     "task_completion_score": 2.9000000000000004,
     "tool_selection_score": 4.25,
-    "planning_effectiveness_and_efficiency_score": 2.3,
+    "planning_effectiveness_and_efficiency_score": 4.0,
     "task_fulfillment": 3.9982142857,
     "grounding": 3.55,
     "tool_appropriateness": 5.3,
@@ -638,7 +638,7 @@
   "Movie Recommender": {
     "task_completion_score": 2.55,
     "tool_selection_score": 3.05,
-    "planning_effectiveness_and_efficiency_score": 1.7000000000000002,
+    "planning_effectiveness_and_efficiency_score": 3.2,
     "task_fulfillment": 3.6482142857,
     "grounding": 3.05,
     "tool_appropriateness": 4.1,
@@ -662,7 +662,7 @@
   "Paper Search": {
     "task_completion_score": 1.7000000000000002,
     "tool_selection_score": 2.65,
-    "planning_effectiveness_and_efficiency_score": 1.6500000000000001,
+    "planning_effectiveness_and_efficiency_score": 3.1,
     "task_fulfillment": 3.1482142857,
     "grounding": 1.6,
     "tool_appropriateness": 3.5,

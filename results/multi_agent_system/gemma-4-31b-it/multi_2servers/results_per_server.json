@@ -14,7 +14,7 @@
   "Unit Converter+Math MCP": {
     "task_completion_score": 9.25,
     "tool_selection_score": 8.1,
-    "planning_effectiveness_and_efficiency_score": 5.1,
+    "planning_effectiveness_and_efficiency_score": 5.4,
     "task_fulfillment": 9.100000000000001,
     "grounding": 9.55,
     "tool_appropriateness": 7.55,
@@ -38,7 +38,7 @@
   "Scientific Computing+Math MCP": {
     "task_completion_score": 8.5,
     "tool_selection_score": 7.45,
-    "planning_effectiveness_and_efficiency_score": 4.75,
+    "planning_effectiveness_and_efficiency_score": 5.075,
     "task_fulfillment": 8.5,
     "grounding": 8.6,
     "tool_appropriateness": 8.100000000000001,
@@ -62,7 +62,7 @@
   "Scientific Computing+Unit Converter": {
     "task_completion_score": 7.25,
     "tool_selection_score": 7.2,
-    "planning_effectiveness_and_efficiency_score": 4.0,
+    "planning_effectiveness_and_efficiency_score": 4.3,
     "task_fulfillment": 6.1,
     "grounding": 8.7,
     "tool_appropriateness": 7.199999999999999,
@@ -86,7 +86,7 @@
   "Paper Search+BioMCP": {
     "task_completion_score": 6.3,
     "tool_selection_score": 5.85,
-    "planning_effectiveness_and_efficiency_score": 4.4,
+    "planning_effectiveness_and_efficiency_score": 4.7,
     "task_fulfillment": 6.15,
     "grounding": 6.9,
     "tool_appropriateness": 6.699999999999999,
@@ -110,7 +110,7 @@
   "DEX Paprika+OKX Exchange": {
     "task_completion_score": 6.15,
     "tool_selection_score": 5.6,
-    "planning_effectiveness_and_efficiency_score": 3.8499999999999996,
+    "planning_effectiveness_and_efficiency_score": 4.15,
     "task_fulfillment": 4.1,
     "grounding": 8.2,
     "tool_appropriateness": 6.0,
@@ -134,7 +134,7 @@
   "Google Maps+Weather Data": {
     "task_completion_score": 5.95,
     "tool_selection_score": 4.75,
-    "planning_effectiveness_and_efficiency_score": 2.7,
+    "planning_effectiveness_and_efficiency_score": 3.075,
     "task_fulfillment": 4.050000000000001,
     "grounding": 8.0,
     "tool_appropriateness": 5.4,
@@ -158,7 +158,7 @@
   "Google Maps+National Parks": {
     "task_completion_score": 5.85,
     "tool_selection_score": 5.949999999999999,
-    "planning_effectiveness_and_efficiency_score": 3.85,
+    "planning_effectiveness_and_efficiency_score": 4.15,
     "task_fulfillment": 4.5,
     "grounding": 7.199999999999999,
     "tool_appropriateness": 6.5,
@@ -182,7 +182,7 @@
   "NixOS+Context7": {
     "task_completion_score": 5.85,
     "tool_selection_score": 5.85,
-    "planning_effectiveness_and_efficiency_score": 3.3,
+    "planning_effectiveness_and_efficiency_score": 3.5999999999999996,
     "task_fulfillment": 4.55,
     "grounding": 7.3,
     "tool_appropriateness": 5.2,
@@ -206,7 +206,7 @@
   "Reddit+DEX Paprika": {
     "task_completion_score": 5.6,
     "tool_selection_score": 6.1000000000000005,
-    "planning_effectiveness_and_efficiency_score": 2.8000000000000003,
+    "planning_effectiveness_and_efficiency_score": 3.0999999999999996,
     "task_fulfillment": 5.0,
     "grounding": 7.0,
     "tool_appropriateness": 5.5,
@@ -230,7 +230,7 @@
   "Wikipedia+Paper Search": {
     "task_completion_score": 5.199999999999999,
     "tool_selection_score": 4.800000000000001,
-    "planning_effectiveness_and_efficiency_score": 3.65,
+    "planning_effectiveness_and_efficiency_score": 4.0,
     "task_fulfillment": 4.5,
     "grounding": 6.1,
     "tool_appropriateness": 5.5,
@@ -254,7 +254,7 @@
   "Wikipedia+NASA Data": {
     "task_completion_score": 5.05,
     "tool_selection_score": 5.75,
-    "planning_effectiveness_and_efficiency_score": 2.0500000000000003,
+    "planning_effectiveness_and_efficiency_score": 2.35,
     "task_fulfillment": 2.7,
     "grounding": 7.6,
     "tool_appropriateness": 4.6,
@@ -278,7 +278,7 @@
   "Metropolitan Museum+Wikipedia": {
     "task_completion_score": 4.25,
     "tool_selection_score": 7.35,
-    "planning_effectiveness_and_efficiency_score": 2.65,
+    "planning_effectiveness_and_efficiency_score": 2.95,
     "task_fulfillment": 2.45,
     "grounding": 6.3,
     "tool_appropriateness": 6.5,
@@ -302,7 +302,7 @@
   "Game Trends+Reddit": {
     "task_completion_score": 4.1,
     "tool_selection_score": 5.95,
-    "planning_effectiveness_and_efficiency_score": 1.9500000000000002,
+    "planning_effectiveness_and_efficiency_score": 2.2750000000000004,
     "task_fulfillment": 2.5999999999999996,
     "grounding": 6.15,
     "tool_appropriateness": 4.55,
@@ -326,7 +326,7 @@
   "National Parks+Weather Data": {
     "task_completion_score": 2.9,
     "tool_selection_score": 2.4,
-    "planning_effectiveness_and_efficiency_score": 1.6,
+    "planning_effectiveness_and_efficiency_score": 1.9,
     "task_fulfillment": 1.85,
     "grounding": 4.2,
     "tool_appropriateness": 3.2,
@@ -350,7 +350,7 @@
   "Hugging Face+Paper Search": {
     "task_completion_score": 2.5,
     "tool_selection_score": 3.5,
-    "planning_effectiveness_and_efficiency_score": 2.0,
+    "planning_effectiveness_and_efficiency_score": 2.3,
     "task_fulfillment": 2.55,
     "grounding": 3.0,
     "tool_appropriateness": 4.2,

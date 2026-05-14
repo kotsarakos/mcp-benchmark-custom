@@ -1,4 +1,5 @@
 {
+  "model": "llama-3.3-70b-instruct",
   "Rule-based": {
     "Schema Understanding": {
       "Valid Tool Name Rate": 0.994,

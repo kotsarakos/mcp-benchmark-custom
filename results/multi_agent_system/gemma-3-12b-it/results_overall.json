@@ -1,4 +1,5 @@
 {
+  "model": "gemma-3-12b-it",
   "Rule-based": {
     "Schema Understanding": {
       "Valid Tool Name Rate": 0.963,

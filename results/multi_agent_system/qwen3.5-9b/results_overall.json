@@ -1,4 +1,5 @@
 {
+  "model": "qwen3.5-9b",
   "Rule-based": {
     "Schema Understanding": {
       "Valid Tool Name Rate": 0.993,

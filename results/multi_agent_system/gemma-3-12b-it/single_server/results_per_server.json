@@ -38,7 +38,7 @@
   "DEX Paprika": {
     "task_completion_score": 5.45,
     "tool_selection_score": 4.3,
-    "planning_effectiveness_and_efficiency_score": 2.55,
+    "planning_effectiveness_and_efficiency_score": 2.7,
     "task_fulfillment": 3.5,
     "grounding": 7.9,
     "tool_appropriateness": 5.0,
@@ -62,7 +62,7 @@
   "Unit Converter": {
     "task_completion_score": 5.449999999999999,
     "tool_selection_score": 6.199999999999999,
-    "planning_effectiveness_and_efficiency_score": 2.55,
+    "planning_effectiveness_and_efficiency_score": 2.6,
     "task_fulfillment": 5.5,
     "grounding": 8.0,
     "tool_appropriateness": 6.5,
@@ -86,7 +86,7 @@
   "Medical Calculator": {
     "task_completion_score": 5.25,
     "tool_selection_score": 5.05,
-    "planning_effectiveness_and_efficiency_score": 3.4,
+    "planning_effectiveness_and_efficiency_score": 3.9,
     "task_fulfillment": 5.75,
     "grounding": 6.1,
     "tool_appropriateness": 6.1,
@@ -110,7 +110,7 @@
   "Metropolitan Museum": {
     "task_completion_score": 4.85,
     "tool_selection_score": 7.25,
-    "planning_effectiveness_and_efficiency_score": 4.0,
+    "planning_effectiveness_and_efficiency_score": 4.325,
     "task_fulfillment": 4.35,
     "grounding": 5.6,
     "tool_appropriateness": 8.149999999999999,
@@ -158,7 +158,7 @@
   "OSINT Intelligence": {
     "task_completion_score": 4.6,
     "tool_selection_score": 9.3,
-    "planning_effectiveness_and_efficiency_score": 1.3499999999999999,
+    "planning_effectiveness_and_efficiency_score": 1.6,
     "task_fulfillment": 1.0,
     "grounding": 8.4,
     "tool_appropriateness": 9.0,
@@ -182,7 +182,7 @@
   "Scientific Computing": {
     "task_completion_score": 4.5,
     "tool_selection_score": 4.3,
-    "planning_effectiveness_and_efficiency_score": 3.15,
+    "planning_effectiveness_and_efficiency_score": 3.2,
     "task_fulfillment": 4.95,
     "grounding": 4.6499999999999995,
     "tool_appropriateness": 5.0,
@@ -230,7 +230,7 @@
   "NixOS": {
     "task_completion_score": 4.0,
     "tool_selection_score": 5.35,
-    "planning_effectiveness_and_efficiency_score": 2.1500000000000004,
+    "planning_effectiveness_and_efficiency_score": 2.15,
     "task_fulfillment": 3.2,
     "grounding": 4.8,
     "tool_appropriateness": 5.1,
@@ -302,7 +302,7 @@
   "Hugging Face": {
     "task_completion_score": 3.7,
     "tool_selection_score": 3.3000000000000003,
-    "planning_effectiveness_and_efficiency_score": 1.9000000000000001,
+    "planning_effectiveness_and_efficiency_score": 1.9,
     "task_fulfillment": 1.6,
     "grounding": 5.800000000000001,
     "tool_appropriateness": 4.2,
@@ -350,7 +350,7 @@
   "Google Maps": {
     "task_completion_score": 3.4,
     "tool_selection_score": 4.2,
-    "planning_effectiveness_and_efficiency_score": 2.35,
+    "planning_effectiveness_and_efficiency_score": 2.25,
     "task_fulfillment": 2.7,
     "grounding": 4.6,
     "tool_appropriateness": 4.9,
@@ -398,7 +398,7 @@
   "Time MCP": {
     "task_completion_score": 2.8499999999999996,
     "tool_selection_score": 5.2,
-    "planning_effectiveness_and_efficiency_score": 1.9500000000000002,
+    "planning_effectiveness_and_efficiency_score": 2.65,
     "task_fulfillment": 3.9,
     "grounding": 3.75,
     "tool_appropriateness": 4.800000000000001,
@@ -422,7 +422,7 @@
   "Bibliomantic": {
     "task_completion_score": 2.65,
     "tool_selection_score": 3.7,
-    "planning_effectiveness_and_efficiency_score": 1.75,
+    "planning_effectiveness_and_efficiency_score": 1.875,
     "task_fulfillment": 2.35,
     "grounding": 3.3,
     "tool_appropriateness": 3.9,
@@ -542,7 +542,7 @@
   "Reddit": {
     "task_completion_score": 2.1,
     "tool_selection_score": 4.0,
-    "planning_effectiveness_and_efficiency_score": 1.5999999999999999,
+    "planning_effectiveness_and_efficiency_score": 1.6,
     "task_fulfillment": 1.9,
     "grounding": 2.3,
     "tool_appropriateness": 4.6,
@@ -638,7 +638,7 @@
   "OpenAPI Explorer": {
     "task_completion_score": 1.55,
     "tool_selection_score": 3.35,
-    "planning_effectiveness_and_efficiency_score": 1.55,
+    "planning_effectiveness_and_efficiency_score": 1.5499999999999998,
     "task_fulfillment": 2.0,
     "grounding": 2.2,
     "tool_appropriateness": 2.3,

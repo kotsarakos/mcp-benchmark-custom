@@ -1,23 +1,24 @@
 {
+  "model": "gemma-3-12b-it",
   "Rule-based": {
     "Schema Understanding": {
-      "Valid Tool Name Rate": 0.8510,
-      "Schema Compliance": 0.8800,
-      "Execution Success": 0.7820
+      "Valid Tool Name Rate": 0.851,
+      "Schema Compliance": 0.88,
+      "Execution Success": 0.782
     }
   },
   "LLM Judge": {
     "Task Completion": {
-      "Task Fulfillment": 0.2980,
-      "Information Grounding": 0.4510
+      "Task Fulfillment": 0.298,
+      "Information Grounding": 0.451
     },
     "Tool Usage": {
-      "Tool Appropriateness": 0.5810,
-      "Parameter Accuracy": 0.5080
+      "Tool Appropriateness": 0.581,
+      "Parameter Accuracy": 0.508
     },
     "Planning Effectiveness": {
-      "Dependency Awareness": 0.3310,
-      "Parallelism and Efficiency": 0.2150
+      "Dependency Awareness": 0.331,
+      "Parallelism and Efficiency": 0.215
     }
   },
   "Efficiency_metrics": {

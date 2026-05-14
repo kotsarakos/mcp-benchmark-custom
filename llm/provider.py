@@ -160,10 +160,14 @@ class LLMProvider:
         else:
             params["max_tokens"] = max_tokens
 
-        # For OpenRouter: restrict to bf16 providers only.
-        # This excludes Together (404s on gemma-4-31b-it) and fp8-quantized models which can cause instability.
+        # For OpenRouter: prefer bf16 providers in order, allow fp8 fallback when rate-limited.
         if self.provider_type == "openrouter":
-            params["extra_body"] = {"provider": {"quantizations": ["bf16"]}}
+            params["extra_body"] = {
+                "provider": {
+                    "order": ["Novita", "Parasail", "Venice", "DeepInfra", "AkashML"],
+                    "allow_fallbacks": True,
+                }
+            }
         
         # Simple retry mechanism: 3 attempts with exponential backoff
         max_attempts = 3

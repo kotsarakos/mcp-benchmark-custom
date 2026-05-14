@@ -16,8 +16,24 @@ class AgentState(TypedDict):
     # Any--> details like description, dependencies, status
     task_definitions: Dict[str, Any] 
 
-    # Failure context from the last execution attempts
-    failure_history: Annotated[List[str], operator.add]
+    # Structured failure log across all replans. Each entry is a dict:
+    #   {
+    #     "task_id":          str | None,
+    #     "task_description": str | None,
+    #     "server":           str | None,
+    #     "tool":              str | None,
+    #     "error_type":       "access_denied" | "rate_limit" | "timeout" | "server_error" |
+    #                         "not_found" | "empty" | "schema_error" | "connection" |
+    #                         "impossible" | "planner_json" | "unknown",
+    #     "reason":           str,            # raw error message (capped)
+    #     "source":           str,            # "verifier" | "executor" | "planner" | "unanswerability_check"
+    #     "replan_round":     int,
+    #     "global_step":      int,
+    #   }
+    # Rendered for prompts via utils.format_failure_history_for_prompt() so the
+    # LLM can map sub-question → failure (which task failed, on which server, with
+    # which error class).
+    failure_history: Annotated[List[Dict[str, Any]], operator.add]
 
     # Last failure reason (if any) to provide immediate feedback to the Planner
     last_failure_reason: str

@@ -67,3 +67,4 @@ mcp_info_collection.log
 
 # Runtime cache
 cache/mcp_servers/api_key
+/docs/agent_outputs.json

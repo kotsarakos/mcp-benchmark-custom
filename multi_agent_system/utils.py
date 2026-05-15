@@ -11,11 +11,115 @@ pipeline on every cycle. This module owns:
 """
 
 import copy
+import json
 import logging
+import json_repair
+
+
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+
+def _find_largest_json_object(text: str) -> str | None:
+    """
+    Scan `text` for balanced `{...}` JSON objects (respecting string literals
+    and escapes) and return the largest one found. Used to extract real JSON
+    from reasoning-model output that prefixes its answer with thinking text
+    that may contain stray `{}` placeholders.
+    Returns None if no balanced object is found.
+    """
+    best: str | None = None
+    n = len(text)
+    i = 0
+    while i < n:
+        if text[i] != "{":
+            i += 1
+            continue
+        depth = 0
+        in_string = False
+        escape = False
+        for j in range(i, n):
+            ch = text[j]
+            if escape:
+                escape = False
+                continue
+            if ch == "\\":
+                escape = True
+                continue
+            if ch == '"':
+                in_string = not in_string
+                continue
+            if in_string:
+                continue
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    candidate = text[i:j + 1]
+                    if best is None or len(candidate) > len(best):
+                        best = candidate
+                    break
+        i += 1
+    return best
+
+
+def clean_and_parse_json(raw: str):
+    """
+    Tolerant JSON parser that mirrors llm/provider.py's clean_and_parse_json,
+    extended to handle reasoning-model output that prefixes its JSON with
+    "Thinking Process:" text containing stray `{}` placeholders.
+
+    Strategy:
+      1. Strip ```json``` / ``` markdown fences if present.
+      2. Try parsing the whole stripped text as JSON.
+      3. If that fails, scan the text for the LARGEST balanced `{...}` object
+         (a real plan is much bigger than a placeholder `{}`) and parse that.
+      4. Fall back to json_repair as a last resort.
+    """
+    if not raw:
+        raise ValueError("Empty content from LLM")
+    text = raw
+    if "```json" in text:
+        text = text.split("```json", 1)[1].split("```", 1)[0].strip()
+    elif "```" in text:
+        parts = text.split("```")
+        if len(parts) >= 2:
+            text = parts[1].strip()
+    text = text.strip()
+
+    # Fast path — clean JSON.
+    if text.startswith("{") or text.startswith("["):
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+
+    # Largest balanced object — robust to leading "Thinking Process:" text
+    # that contains placeholder `{}` snippets the model echoed from the prompt.
+    largest = _find_largest_json_object(text)
+    if largest is not None:
+        try:
+            return json.loads(largest)
+        except json.JSONDecodeError:
+            try:
+                return json_repair.loads(largest)
+            except Exception:
+                pass
+
+    # Last-resort: slice from the first { or [ and let json_repair try.
+    first_brace = text.find("{")
+    first_bracket = text.find("[")
+    candidates = [i for i in (first_brace, first_bracket) if i != -1]
+    if not candidates:
+        raise ValueError(f"No JSON object/array found in LLM response: {raw[:300]}")
+    sliced = text[min(candidates):]
+    try:
+        return json.loads(sliced)
+    except json.JSONDecodeError:
+        return json_repair.loads(sliced)
 
 
 def current_date_str() -> str:
@@ -218,6 +322,227 @@ def refresh_task_descriptions(state: Dict[str, Any]) -> None:
                 tdef["description"] = base_desc + marker + "\n".join(context)
 
 
+# Error-type classification used by record_failure(). Order matters — first match wins.
+# Patterns are checked against the lower-cased reason string.
+_ERROR_TYPE_PATTERNS = (
+    ("access_denied", ("forbidden", "403", "401", "unauthorized", "access denied",
+                       "permission denied", "not permitted", "access restricted",
+                       "insufficient permissions", "no permission", "not authorized")),
+    ("rate_limit",    ("rate limit", "too many requests", "429")),
+    ("timeout",       ("timeout", "timed out", "deadline exceeded")),
+    ("server_error",  ("503", "502", "500 internal", "service unavailable", "internal server error", "bad gateway")),
+    ("connection",    ("connection refused", "connection reset", "network unreachable", "dns")),
+    ("not_found",     ("not found", "404", "no such", "does not exist")),
+    ("schema_error",  ("schema", "invalid argument", "validation error", "missing required", "bad request", "400")),
+    ("empty",         ("empty result", "no results", "no data", "returned empty")),
+)
+
+# Reason strings stored in failure_history are capped at this many characters.
+# Long raw API errors blow up the prompt and rarely add information past the head.
+_MAX_REASON_CHARS = 600
+
+
+def _classify_error_type(reason: str) -> str:
+    """Map a raw error string to a coarse error_type label."""
+    if not reason:
+        return "unknown"
+    low = reason.lower()
+    for etype, kws in _ERROR_TYPE_PATTERNS:
+        if any(kw in low for kw in kws):
+            return etype
+    return "unknown"
+
+
+def _build_failure_entry(
+    *,
+    task_id: Optional[str],
+    task_description: Optional[str],
+    server: Optional[str],
+    tool: Optional[str],
+    reason: str,
+    source: str,
+    replan_round: int,
+    global_step: int,
+    explicit_error_type: Optional[str] = None,
+) -> Dict[str, Any]:
+    reason_str = (reason or "").strip()
+    if len(reason_str) > _MAX_REASON_CHARS:
+        reason_str = reason_str[:_MAX_REASON_CHARS] + "...[truncated]"
+    return {
+        "task_id": task_id,
+        "task_description": task_description,
+        "server": server,
+        "tool": tool,
+        "error_type": explicit_error_type or _classify_error_type(reason_str),
+        "reason": reason_str,
+        "source": source,
+        "replan_round": replan_round,
+        "global_step": global_step,
+    }
+
+
+def _entries_match(a: Dict[str, Any], b: Dict[str, Any]) -> bool:
+    """Two failure entries are duplicates if task, error_type, and reason all match."""
+    return (
+        a.get("task_id") == b.get("task_id")
+        and a.get("error_type") == b.get("error_type")
+        and a.get("reason") == b.get("reason")
+    )
+
+
+def record_failure(
+    state: Dict[str, Any],
+    *,
+    source: str = "verifier",
+    explicit_error_type: Optional[str] = None,
+) -> None:
+    """
+    Append structured failure entries to state['failure_history'].
+
+    One entry per still-pending task in the current step, each carrying its own
+    task_id, server, and (when available) per-task reason from
+    latest_execution_results. This lets the synthesis prompt map "which sub-
+    question failed" to "which server returned which error" instead of seeing a
+    flat list of strings.
+
+    If the current step has no resolvable tasks (e.g. planner JSON failure
+    before a step exists), records a single source-level entry with task_id=None.
+    """
+    overall_reason = state.get("last_failure_reason", "") or ""
+    if not overall_reason and not explicit_error_type:
+        return
+
+    plan = state.get("plan", [])
+    idx = state.get("current_step_index", 0)
+    task_defs = state.get("task_definitions", {})
+    selected = state.get("selected_servers", {})
+    latest_exec = state.get("latest_execution_results", {})
+    finished = set(state.get("finished_task_ids", []))
+    replan_round = int(state.get("_replans", 0) or 0)
+    global_step = int(state.get("_global_step", 0) or 0)
+
+    history = state.setdefault("failure_history", [])
+
+    current_task_ids: List[str] = []
+    if plan and idx < len(plan):
+        current_task_ids = [t for t in plan[idx].get("tasks", []) if t not in finished]
+
+    if not current_task_ids:
+        entry = _build_failure_entry(
+            task_id=None,
+            task_description=None,
+            server=None,
+            tool=None,
+            reason=overall_reason,
+            source=source,
+            replan_round=replan_round,
+            global_step=global_step,
+            explicit_error_type=explicit_error_type,
+        )
+        if not history or not _entries_match(history[-1], entry):
+            history.append(entry)
+        return
+
+    for tid in current_task_ids:
+        tdef = task_defs.get(tid, {})
+        srv_info = selected.get(tid)
+        if isinstance(srv_info, dict):
+            srv_name = srv_info.get("selected_server")
+        else:
+            srv_name = srv_info if isinstance(srv_info, str) else None
+        if isinstance(srv_name, str) and srv_name.lower() in ("none", "null", ""):
+            srv_name = None
+
+        per_task_reason = overall_reason
+        result_for_task = latest_exec.get(tid)
+        if isinstance(result_for_task, str) and result_for_task.strip():
+            per_task_reason = result_for_task
+
+        entry = _build_failure_entry(
+            task_id=tid,
+            task_description=tdef.get("description", ""),
+            server=srv_name,
+            tool=None,
+            reason=per_task_reason,
+            source=source,
+            replan_round=replan_round,
+            global_step=global_step,
+            explicit_error_type=explicit_error_type,
+        )
+        if not _entries_match_in_recent(history, entry):
+            history.append(entry)
+
+
+def _entries_match_in_recent(history: List[Dict[str, Any]], entry: Dict[str, Any], window: int = 4) -> bool:
+    """Check the last `window` entries for a duplicate of `entry`."""
+    if not history:
+        return False
+    for prev in history[-window:]:
+        if isinstance(prev, dict) and _entries_match(prev, entry):
+            return True
+    return False
+
+
+def format_failure_history_for_prompt(history: List[Any]) -> str:
+    """
+    Render structured failure_history grouped by task for LLM consumption.
+    Falls back to JSON dump for legacy string entries.
+    """
+    if not history:
+        return "(no failures recorded)"
+
+    if any(not isinstance(e, dict) for e in history):
+        return json.dumps(history, ensure_ascii=False, indent=2)
+
+    by_task: Dict[str, List[Dict[str, Any]]] = {}
+    orphans: List[Dict[str, Any]] = []
+    order: List[str] = []
+    for e in history:
+        tid = e.get("task_id")
+        if tid:
+            if tid not in by_task:
+                by_task[tid] = []
+                order.append(tid)
+            by_task[tid].append(e)
+        else:
+            orphans.append(e)
+
+    lines: List[str] = []
+    for tid in order:
+        entries = by_task[tid]
+        desc = entries[0].get("task_description") or "(no description)"
+        lines.append(f"- Sub-task {tid}: {desc}")
+        for e in entries:
+            srv = e.get("server") or "?"
+            tool = e.get("tool") or "?"
+            etype = e.get("error_type") or "unknown"
+            reason = e.get("reason") or ""
+            tag = f"{srv}.{tool}" if tool != "?" else srv
+            lines.append(
+                f"    [step {e.get('global_step', 0)} replan {e.get('replan_round', 0)}] "
+                f"{tag} → {etype}: {reason}"
+            )
+    if orphans:
+        lines.append("- (no task context):")
+        for e in orphans:
+            etype = e.get("error_type") or "unknown"
+            reason = e.get("reason") or ""
+            lines.append(
+                f"    [step {e.get('global_step', 0)} replan {e.get('replan_round', 0)}] "
+                f"{etype}: {reason}"
+            )
+    return "\n".join(lines)
+
+
+def latest_error_types(history: List[Any], n: int = 3) -> List[str]:
+    """Return the error_type of the last n structured entries (newest last)."""
+    out: List[str] = []
+    for e in history[-n:]:
+        if isinstance(e, dict):
+            out.append(e.get("error_type") or "unknown")
+    return out
+
+
 # Keywords that indicate a transient failure — server should NOT be excluded.
 _TRANSIENT_ERROR_SIGNALS = (
     "timeout", "timed out", "connection", "network", "temporarily",
@@ -290,15 +615,6 @@ def record_failed_servers(state: Dict[str, Any]) -> None:
                     server_name, task_id, task_counts[server_name]
                 )
                 excluded[task_id].append(server_name)
-
-def all_steps_completed(state: Dict[str, Any]) -> bool:
-    """
-    Return True when the step index has advanced past the last plan step.
-    """
-    plan = state.get("plan", [])
-    current_idx = state.get("current_step_index", 0)
-    return bool(plan) and current_idx >= len(plan)
-
 
 def is_reasoning_step(state: Dict[str, Any]) -> bool:
     """

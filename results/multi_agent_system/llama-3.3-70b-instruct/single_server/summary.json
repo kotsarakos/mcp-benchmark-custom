@@ -1,4 +1,6 @@
 {
+  "model": "llama-3.3-70b-instruct",
+  "setup": "single_server",
   "task_completion_score": 4.307142857142857,
   "tool_selection_score": 5.1875,
   "planning_effectiveness_and_efficiency_score": 2.7861607142857143,

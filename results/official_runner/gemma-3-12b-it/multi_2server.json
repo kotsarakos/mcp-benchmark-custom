@@ -1,4 +1,6 @@
 {
+  "model": "gemma-3-12b-it",
+  "setup": "multi_2servers",
   "task_completion_score": 3.4266666666666667,
   "tool_selection_score": 4.940000000000001,
   "planning_effectiveness_and_efficiency_score": 2.3166666666666673,

@@ -1,4 +1,6 @@
 {
+  "model": "qwen3.5-9b",
+  "setup": "single_server",
   "task_completion_score": 4.4816964285714285,
   "tool_selection_score": 5.871875,
   "planning_effectiveness_and_efficiency_score": 2.9316964285714286,

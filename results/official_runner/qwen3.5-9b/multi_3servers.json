@@ -1,4 +1,6 @@
 {
+  "model": "qwen3.5-9b",
+  "setup": "multi_3servers",
   "task_completion_score": 4.655555555555555,
   "tool_selection_score": 5.69861111111111,
   "planning_effectiveness_and_efficiency_score": 3.3138888888888887,

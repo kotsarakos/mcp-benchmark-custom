@@ -187,6 +187,23 @@ one for planning).
 
 ---
 
+## Quick demo
+
+A Streamlit UI is included so anyone who clones the repo can try the
+system end-to-end without writing a driver script:
+
+```bash
+pip install streamlit
+streamlit run demo.py
+```
+
+Open <http://localhost:8501>, type a question, and the page shows the
+final answer plus the full trajectory — the Planner's DAG, every tool
+call (server, args, truncated result), any replans, and the wall-clock
+stats. Trace data is read from `TraceRecorder` after each run.
+
+---
+
 ## MCP Servers
 
 MCP-Bench ships with **28** MCP servers spanning science, finance, media,

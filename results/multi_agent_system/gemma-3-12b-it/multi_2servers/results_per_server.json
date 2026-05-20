@@ -4,7 +4,7 @@
     "total_tasks": 30,
     "best_server": {
       "name": "DEX Paprika+OKX Exchange",
-      "task_completion_score": 6.15
+      "task_completion_score": 6.074999999999999
     },
     "worst_server": {
       "name": "Scientific Computing+Math MCP",
@@ -12,7 +12,7 @@
     }
   },
   "DEX Paprika+OKX Exchange": {
-    "task_completion_score": 6.15,
+    "task_completion_score": 6.074999999999999,
     "tool_selection_score": 5.199999999999999,
     "planning_effectiveness_and_efficiency_score": 3.8,
     "task_fulfillment": 4.05,
@@ -36,7 +36,7 @@
     "task_count": 2
   },
   "Paper Search+BioMCP": {
-    "task_completion_score": 5.15,
+    "task_completion_score": 5.225,
     "tool_selection_score": 5.35,
     "planning_effectiveness_and_efficiency_score": 3.975,
     "task_fulfillment": 5.35,
@@ -60,7 +60,7 @@
     "task_count": 2
   },
   "Google Maps+Weather Data": {
-    "task_completion_score": 3.85,
+    "task_completion_score": 4.475,
     "tool_selection_score": 3.55,
     "planning_effectiveness_and_efficiency_score": 3.1500000000000004,
     "task_fulfillment": 4.25,
@@ -108,7 +108,7 @@
     "task_count": 2
   },
   "NixOS+Context7": {
-    "task_completion_score": 3.6999999999999997,
+    "task_completion_score": 3.7,
     "tool_selection_score": 4.9,
     "planning_effectiveness_and_efficiency_score": 2.8,
     "task_fulfillment": 3.5,
@@ -156,7 +156,7 @@
     "task_count": 2
   },
   "Wikipedia+NASA Data": {
-    "task_completion_score": 3.3,
+    "task_completion_score": 2.75,
     "tool_selection_score": 5.65,
     "planning_effectiveness_and_efficiency_score": 1.2,
     "task_fulfillment": 1.9000000000000001,
@@ -180,7 +180,7 @@
     "task_count": 2
   },
   "Game Trends+Reddit": {
-    "task_completion_score": 3.05,
+    "task_completion_score": 3.0749999999999997,
     "tool_selection_score": 5.4,
     "planning_effectiveness_and_efficiency_score": 2.25,
     "task_fulfillment": 2.55,
@@ -228,7 +228,7 @@
     "task_count": 2
   },
   "Scientific Computing+Unit Converter": {
-    "task_completion_score": 2.7,
+    "task_completion_score": 3.0,
     "tool_selection_score": 4.7,
     "planning_effectiveness_and_efficiency_score": 1.75,
     "task_fulfillment": 2.8,
@@ -300,7 +300,7 @@
     "task_count": 2
   },
   "Hugging Face+Paper Search": {
-    "task_completion_score": 1.7,
+    "task_completion_score": 1.7000000000000002,
     "tool_selection_score": 2.0999999999999996,
     "planning_effectiveness_and_efficiency_score": 1.4,
     "task_fulfillment": 1.7000000000000002,
@@ -324,7 +324,7 @@
     "task_count": 2
   },
   "Google Maps+National Parks": {
-    "task_completion_score": 1.65,
+    "task_completion_score": 1.875,
     "tool_selection_score": 1.85,
     "planning_effectiveness_and_efficiency_score": 1.475,
     "task_fulfillment": 1.7000000000000002,

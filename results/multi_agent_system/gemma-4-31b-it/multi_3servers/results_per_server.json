@@ -4,15 +4,15 @@
     "total_tasks": 18,
     "best_server": {
       "name": "Medical Calculator+Wikipedia+FruityVice",
-      "task_completion_score": 7.949999999999999
+      "task_completion_score": 7.95
     },
     "worst_server": {
       "name": "Paper Search+Call for Papers+Wikipedia",
-      "task_completion_score": 2.45
+      "task_completion_score": 2.5
     }
   },
   "Medical Calculator+Wikipedia+FruityVice": {
-    "task_completion_score": 7.949999999999999,
+    "task_completion_score": 7.95,
     "tool_selection_score": 8.2,
     "planning_effectiveness_and_efficiency_score": 6.15,
     "task_fulfillment": 7.9,
@@ -36,7 +36,7 @@
     "task_count": 2
   },
   "Medical Calculator+FruityVice+BioMCP": {
-    "task_completion_score": 7.75,
+    "task_completion_score": 7.675,
     "tool_selection_score": 8.85,
     "planning_effectiveness_and_efficiency_score": 4.9,
     "task_fulfillment": 7.85,
@@ -60,7 +60,7 @@
     "task_count": 2
   },
   "NASA Data+Google Maps+Wikipedia": {
-    "task_completion_score": 5.949999999999999,
+    "task_completion_score": 6.025,
     "tool_selection_score": 6.55,
     "planning_effectiveness_and_efficiency_score": 3.8499999999999996,
     "task_fulfillment": 5.25,
@@ -84,7 +84,7 @@
     "task_count": 2
   },
   "Scientific Computing+BioMCP+Math MCP": {
-    "task_completion_score": 5.8999999999999995,
+    "task_completion_score": 6.425000000000001,
     "tool_selection_score": 8.1,
     "planning_effectiveness_and_efficiency_score": 4.4,
     "task_fulfillment": 6.5,
@@ -108,7 +108,7 @@
     "task_count": 2
   },
   "Google Maps+Weather Data+National Parks": {
-    "task_completion_score": 5.7,
+    "task_completion_score": 5.65,
     "tool_selection_score": 7.9,
     "planning_effectiveness_and_efficiency_score": 3.825,
     "task_fulfillment": 4.0,
@@ -132,7 +132,7 @@
     "task_count": 2
   },
   "Metropolitan Museum+Huge Icons+Wikipedia": {
-    "task_completion_score": 5.1,
+    "task_completion_score": 5.675,
     "tool_selection_score": 7.9,
     "planning_effectiveness_and_efficiency_score": 2.325,
     "task_fulfillment": 3.15,
@@ -156,7 +156,7 @@
     "task_count": 2
   },
   "Hugging Face+Paper Search+Wikipedia": {
-    "task_completion_score": 2.8,
+    "task_completion_score": 3.0,
     "tool_selection_score": 2.8499999999999996,
     "planning_effectiveness_and_efficiency_score": 2.3,
     "task_fulfillment": 2.2,
@@ -180,7 +180,7 @@
     "task_count": 2
   },
   "OpenAPI Explorer+Paper Search+Hugging Face": {
-    "task_completion_score": 2.8,
+    "task_completion_score": 3.3,
     "tool_selection_score": 4.35,
     "planning_effectiveness_and_efficiency_score": 2.875,
     "task_fulfillment": 3.0,
@@ -204,7 +204,7 @@
     "task_count": 2
   },
   "Paper Search+Call for Papers+Wikipedia": {
-    "task_completion_score": 2.45,
+    "task_completion_score": 2.5,
     "tool_selection_score": 3.0500000000000003,
     "planning_effectiveness_and_efficiency_score": 2.1500000000000004,
     "task_fulfillment": 2.55,

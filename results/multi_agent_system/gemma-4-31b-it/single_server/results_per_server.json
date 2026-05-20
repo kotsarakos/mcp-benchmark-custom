@@ -4,15 +4,15 @@
     "total_tasks": 56,
     "best_server": {
       "name": "Math MCP",
-      "task_completion_score": 9.100000000000001
+      "task_completion_score": 9.59910714285
     },
     "worst_server": {
       "name": "Paper Search",
-      "task_completion_score": 1.7000000000000002
+      "task_completion_score": 2.37410714285
     }
   },
   "Math MCP": {
-    "task_completion_score": 9.100000000000001,
+    "task_completion_score": 9.59910714285,
     "tool_selection_score": 8.45,
     "planning_effectiveness_and_efficiency_score": 7.9,
     "task_fulfillment": 9.9482142857,
@@ -36,7 +36,7 @@
     "task_count": 2
   },
   "Time MCP": {
-    "task_completion_score": 8.8,
+    "task_completion_score": 9.47410714285,
     "tool_selection_score": 9.399999999999999,
     "planning_effectiveness_and_efficiency_score": 7.525,
     "task_fulfillment": 9.4482142857,
@@ -60,7 +60,7 @@
     "task_count": 2
   },
   "Medical Calculator": {
-    "task_completion_score": 8.3,
+    "task_completion_score": 8.924107142850001,
     "tool_selection_score": 8.4,
     "planning_effectiveness_and_efficiency_score": 8.05,
     "task_fulfillment": 9.0482142857,
@@ -84,7 +84,7 @@
     "task_count": 2
   },
   "Unit Converter": {
-    "task_completion_score": 7.9,
+    "task_completion_score": 8.79910714285,
     "tool_selection_score": 8.649999999999999,
     "planning_effectiveness_and_efficiency_score": 5.9,
     "task_fulfillment": 8.1482142857,
@@ -108,7 +108,7 @@
     "task_count": 2
   },
   "Reddit": {
-    "task_completion_score": 6.45,
+    "task_completion_score": 7.12410714285,
     "tool_selection_score": 6.9,
     "planning_effectiveness_and_efficiency_score": 5.975,
     "task_fulfillment": 7.1482142857,
@@ -132,7 +132,7 @@
     "task_count": 2
   },
   "OKX Exchange": {
-    "task_completion_score": 6.45,
+    "task_completion_score": 7.12410714285,
     "tool_selection_score": 8.5,
     "planning_effectiveness_and_efficiency_score": 5.9,
     "task_fulfillment": 6.7482142857,
@@ -156,7 +156,7 @@
     "task_count": 2
   },
   "FruityVice": {
-    "task_completion_score": 6.35,
+    "task_completion_score": 7.14910714285,
     "tool_selection_score": 9.4,
     "planning_effectiveness_and_efficiency_score": 4.225,
     "task_fulfillment": 4.4982142857,
@@ -180,7 +180,7 @@
     "task_count": 2
   },
   "Call for Papers": {
-    "task_completion_score": 6.25,
+    "task_completion_score": 7.249107142850001,
     "tool_selection_score": 5.35,
     "planning_effectiveness_and_efficiency_score": 4.55,
     "task_fulfillment": 4.6982142857,
@@ -204,7 +204,7 @@
     "task_count": 2
   },
   "Huge Icons": {
-    "task_completion_score": 6.05,
+    "task_completion_score": 6.72410714285,
     "tool_selection_score": 7.3999999999999995,
     "planning_effectiveness_and_efficiency_score": 5.05,
     "task_fulfillment": 6.4482142857,
@@ -228,7 +228,7 @@
     "task_count": 2
   },
   "BioMCP": {
-    "task_completion_score": 5.8,
+    "task_completion_score": 6.47410714285,
     "tool_selection_score": 4.95,
     "planning_effectiveness_and_efficiency_score": 5.074999999999999,
     "task_fulfillment": 6.4482142857,
@@ -252,7 +252,7 @@
     "task_count": 2
   },
   "National Parks": {
-    "task_completion_score": 5.75,
+    "task_completion_score": 6.47410714285,
     "tool_selection_score": 5.1,
     "planning_effectiveness_and_efficiency_score": 4.75,
     "task_fulfillment": 5.8482142857,
@@ -276,7 +276,7 @@
     "task_count": 2
   },
   "OSINT Intelligence": {
-    "task_completion_score": 5.35,
+    "task_completion_score": 6.149107142849999,
     "tool_selection_score": 7.9,
     "planning_effectiveness_and_efficiency_score": 2.8,
     "task_fulfillment": 2.5982142857,
@@ -300,7 +300,7 @@
     "task_count": 2
   },
   "Google Maps": {
-    "task_completion_score": 5.3,
+    "task_completion_score": 6.04910714285,
     "tool_selection_score": 4.75,
     "planning_effectiveness_and_efficiency_score": 4.2,
     "task_fulfillment": 4.0982142857,
@@ -324,7 +324,7 @@
     "task_count": 2
   },
   "DEX Paprika": {
-    "task_completion_score": 5.05,
+    "task_completion_score": 5.92410714285,
     "tool_selection_score": 6.55,
     "planning_effectiveness_and_efficiency_score": 5.25,
     "task_fulfillment": 5.4982142857,
@@ -348,7 +348,7 @@
     "task_count": 2
   },
   "NixOS": {
-    "task_completion_score": 5.0,
+    "task_completion_score": 5.774107142849999,
     "tool_selection_score": 6.15,
     "planning_effectiveness_and_efficiency_score": 4.075,
     "task_fulfillment": 4.7482142857,
@@ -372,7 +372,7 @@
     "task_count": 2
   },
   "Metropolitan Museum": {
-    "task_completion_score": 5.0,
+    "task_completion_score": 5.64910714285,
     "tool_selection_score": 6.45,
     "planning_effectiveness_and_efficiency_score": 4.75,
     "task_fulfillment": 5.5982142857,
@@ -396,7 +396,7 @@
     "task_count": 2
   },
   "Scientific Computing": {
-    "task_completion_score": 4.75,
+    "task_completion_score": 5.67410714285,
     "tool_selection_score": 5.35,
     "planning_effectiveness_and_efficiency_score": 4.375,
     "task_fulfillment": 6.5482142857,
@@ -420,7 +420,7 @@
     "task_count": 2
   },
   "NASA Data": {
-    "task_completion_score": 4.699999999999999,
+    "task_completion_score": 5.37410714285,
     "tool_selection_score": 5.55,
     "planning_effectiveness_and_efficiency_score": 4.25,
     "task_fulfillment": 5.1482142857,
@@ -444,7 +444,7 @@
     "task_count": 2
   },
   "Car Price Evaluator": {
-    "task_completion_score": 4.550000000000001,
+    "task_completion_score": 5.57410714285,
     "tool_selection_score": 7.5,
     "planning_effectiveness_and_efficiency_score": 3.725,
     "task_fulfillment": 3.3482142857,
@@ -468,7 +468,7 @@
     "task_count": 2
   },
   "Context7": {
-    "task_completion_score": 4.449999999999999,
+    "task_completion_score": 5.124107142850001,
     "tool_selection_score": 4.75,
     "planning_effectiveness_and_efficiency_score": 6.2,
     "task_fulfillment": 5.3482142857,
@@ -492,7 +492,7 @@
     "task_count": 2
   },
   "Wikipedia": {
-    "task_completion_score": 4.35,
+    "task_completion_score": 5.72410714285,
     "tool_selection_score": 4.1000000000000005,
     "planning_effectiveness_and_efficiency_score": 4.225,
     "task_fulfillment": 5.8982142857,
@@ -516,7 +516,7 @@
     "task_count": 2
   },
   "Game Trends": {
-    "task_completion_score": 4.3,
+    "task_completion_score": 5.54910714285,
     "tool_selection_score": 4.8,
     "planning_effectiveness_and_efficiency_score": 3.2,
     "task_fulfillment": 3.4982142857,
@@ -540,7 +540,7 @@
     "task_count": 2
   },
   "Bibliomantic": {
-    "task_completion_score": 4.1499999999999995,
+    "task_completion_score": 5.024107142849999,
     "tool_selection_score": 5.0,
     "planning_effectiveness_and_efficiency_score": 4.324999999999999,
     "task_fulfillment": 4.4982142857,
@@ -564,7 +564,7 @@
     "task_count": 2
   },
   "OpenAPI Explorer": {
-    "task_completion_score": 3.9499999999999997,
+    "task_completion_score": 4.69910714285,
     "tool_selection_score": 5.199999999999999,
     "planning_effectiveness_and_efficiency_score": 4.65,
     "task_fulfillment": 4.4982142857,
@@ -588,7 +588,7 @@
     "task_count": 2
   },
   "Weather Data": {
-    "task_completion_score": 3.7,
+    "task_completion_score": 4.42410714285,
     "tool_selection_score": 6.85,
     "planning_effectiveness_and_efficiency_score": 3.4,
     "task_fulfillment": 3.0482142857,
@@ -612,7 +612,7 @@
     "task_count": 2
   },
   "Hugging Face": {
-    "task_completion_score": 2.9000000000000004,
+    "task_completion_score": 3.77410714285,
     "tool_selection_score": 4.25,
     "planning_effectiveness_and_efficiency_score": 4.0,
     "task_fulfillment": 3.9982142857,
@@ -636,7 +636,7 @@
     "task_count": 2
   },
   "Movie Recommender": {
-    "task_completion_score": 2.55,
+    "task_completion_score": 3.34910714285,
     "tool_selection_score": 3.05,
     "planning_effectiveness_and_efficiency_score": 3.2,
     "task_fulfillment": 3.6482142857,
@@ -660,7 +660,7 @@
     "task_count": 2
   },
   "Paper Search": {
-    "task_completion_score": 1.7000000000000002,
+    "task_completion_score": 2.37410714285,
     "tool_selection_score": 2.65,
     "planning_effectiveness_and_efficiency_score": 3.1,
     "task_fulfillment": 3.1482142857,

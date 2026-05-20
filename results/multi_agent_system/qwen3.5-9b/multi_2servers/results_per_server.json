@@ -4,15 +4,15 @@
     "total_tasks": 30,
     "best_server": {
       "name": "DEX Paprika+OKX Exchange",
-      "task_completion_score": 6.45
+      "task_completion_score": 6.6
     },
     "worst_server": {
       "name": "National Parks+Weather Data",
-      "task_completion_score": 2.2
+      "task_completion_score": 1.9500000000000002
     }
   },
   "DEX Paprika+OKX Exchange": {
-    "task_completion_score": 6.45,
+    "task_completion_score": 6.6,
     "tool_selection_score": 6.0,
     "planning_effectiveness_and_efficiency_score": 4.375,
     "task_fulfillment": 6.449999999999999,
@@ -36,7 +36,7 @@
     "task_count": 2
   },
   "NixOS+Context7": {
-    "task_completion_score": 6.050000000000001,
+    "task_completion_score": 6.325,
     "tool_selection_score": 6.75,
     "planning_effectiveness_and_efficiency_score": 4.5,
     "task_fulfillment": 5.050000000000001,
@@ -60,7 +60,7 @@
     "task_count": 2
   },
   "Unit Converter+Math MCP": {
-    "task_completion_score": 5.8,
+    "task_completion_score": 6.4750000000000005,
     "tool_selection_score": 7.3500000000000005,
     "planning_effectiveness_and_efficiency_score": 3.225,
     "task_fulfillment": 4.4,
@@ -84,7 +84,7 @@
     "task_count": 2
   },
   "Wikipedia+Paper Search": {
-    "task_completion_score": 5.8,
+    "task_completion_score": 5.125,
     "tool_selection_score": 5.3,
     "planning_effectiveness_and_efficiency_score": 4.0,
     "task_fulfillment": 4.2,
@@ -108,7 +108,7 @@
     "task_count": 2
   },
   "Google Maps+National Parks": {
-    "task_completion_score": 5.699999999999999,
+    "task_completion_score": 5.275,
     "tool_selection_score": 5.550000000000001,
     "planning_effectiveness_and_efficiency_score": 3.65,
     "task_fulfillment": 4.15,
@@ -132,7 +132,7 @@
     "task_count": 2
   },
   "Reddit+DEX Paprika": {
-    "task_completion_score": 5.699999999999999,
+    "task_completion_score": 5.3,
     "tool_selection_score": 5.25,
     "planning_effectiveness_and_efficiency_score": 2.65,
     "task_fulfillment": 2.5999999999999996,
@@ -156,7 +156,7 @@
     "task_count": 2
   },
   "Game Trends+Reddit": {
-    "task_completion_score": 5.2,
+    "task_completion_score": 5.45,
     "tool_selection_score": 6.2,
     "planning_effectiveness_and_efficiency_score": 2.925,
     "task_fulfillment": 3.9000000000000004,
@@ -204,7 +204,7 @@
     "task_count": 2
   },
   "Paper Search+BioMCP": {
-    "task_completion_score": 5.1,
+    "task_completion_score": 5.725,
     "tool_selection_score": 5.8,
     "planning_effectiveness_and_efficiency_score": 4.525,
     "task_fulfillment": 5.65,
@@ -228,7 +228,7 @@
     "task_count": 2
   },
   "Google Maps+Weather Data": {
-    "task_completion_score": 4.949999999999999,
+    "task_completion_score": 5.1499999999999995,
     "tool_selection_score": 4.15,
     "planning_effectiveness_and_efficiency_score": 3.05,
     "task_fulfillment": 4.1,
@@ -252,7 +252,7 @@
     "task_count": 2
   },
   "Wikipedia+NASA Data": {
-    "task_completion_score": 4.6,
+    "task_completion_score": 4.9,
     "tool_selection_score": 4.55,
     "planning_effectiveness_and_efficiency_score": 2.75,
     "task_fulfillment": 3.55,
@@ -276,7 +276,7 @@
     "task_count": 2
   },
   "Metropolitan Museum+Wikipedia": {
-    "task_completion_score": 4.4,
+    "task_completion_score": 5.15,
     "tool_selection_score": 4.9,
     "planning_effectiveness_and_efficiency_score": 3.1999999999999997,
     "task_fulfillment": 4.1,
@@ -300,7 +300,7 @@
     "task_count": 2
   },
   "Scientific Computing+Math MCP": {
-    "task_completion_score": 3.75,
+    "task_completion_score": 3.85,
     "tool_selection_score": 3.3499999999999996,
     "planning_effectiveness_and_efficiency_score": 1.8,
     "task_fulfillment": 2.8,
@@ -324,7 +324,7 @@
     "task_count": 2
   },
   "Hugging Face+Paper Search": {
-    "task_completion_score": 2.3,
+    "task_completion_score": 2.45,
     "tool_selection_score": 2.95,
     "planning_effectiveness_and_efficiency_score": 2.075,
     "task_fulfillment": 2.2,
@@ -348,7 +348,7 @@
     "task_count": 2
   },
   "National Parks+Weather Data": {
-    "task_completion_score": 2.2,
+    "task_completion_score": 1.9500000000000002,
     "tool_selection_score": 3.1500000000000004,
     "planning_effectiveness_and_efficiency_score": 1.75,
     "task_fulfillment": 1.7000000000000002,

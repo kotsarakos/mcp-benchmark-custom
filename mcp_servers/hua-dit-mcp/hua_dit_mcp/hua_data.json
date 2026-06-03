@@ -10,6 +10,7 @@
       "course_id": "3777",
       "details": {
         "code": "ΥΠ09",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -31,6 +32,7 @@
       "course_id": "3779",
       "details": {
         "code": "ΜΥ01",
+        "ects": "6.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -52,6 +54,7 @@
       "course_id": "3781",
       "details": {
         "code": "ΥΠ02",
+        "ects": "8.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "None",
@@ -73,6 +76,7 @@
       "course_id": "3783",
       "details": {
         "code": "ΥΠ01",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "There are no prerequisites.",
@@ -94,6 +98,7 @@
       "course_id": "3785",
       "details": {
         "code": "ΥΠ04",
+        "ects": "6.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Proficiency in basic algebra and understanding of functions and graphs.",
@@ -115,6 +120,7 @@
       "course_id": "3787",
       "details": {
         "code": "ΜΥ03",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Basic math concepts",
@@ -136,6 +142,7 @@
       "course_id": "3789",
       "details": {
         "code": "ΥΠ18",
+        "ects": "8.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Προγραμματισμός 1",
@@ -157,6 +164,7 @@
       "course_id": "3791",
       "details": {
         "code": "ΥΠ08",
+        "ects": "6.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Programming Ι (ΥΠ02)",
@@ -178,6 +186,7 @@
       "course_id": "3793",
       "details": {
         "code": "ΜΥ02",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -199,6 +208,7 @@
       "course_id": "3795",
       "details": {
         "code": "ΥΠ05",
+        "ects": "6.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -220,6 +230,7 @@
       "course_id": "3797",
       "details": {
         "code": "ΥΠ11",
+        "ects": "6.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -241,6 +252,7 @@
       "course_id": "3799",
       "details": {
         "code": "ΥΠ12",
+        "ects": "7.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -262,6 +274,7 @@
       "course_id": "3801",
       "details": {
         "code": "ΥΠ10",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Object-Oriented Programming 1",
@@ -283,6 +296,7 @@
       "course_id": "3803",
       "details": {
         "code": "ΜΥ04",
+        "ects": "6.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -304,6 +318,7 @@
       "course_id": "3805",
       "details": {
         "code": "ΥΠ13",
+        "ects": "6.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "-",
@@ -325,6 +340,7 @@
       "course_id": "3807",
       "details": {
         "code": "ΥΠ17",
+        "ects": "6.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -346,6 +362,7 @@
       "course_id": "3809",
       "details": {
         "code": "ΥΠ19",
+        "ects": "6.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "- Basic Programming Principles",
@@ -367,6 +384,7 @@
       "course_id": "3811",
       "details": {
         "code": "ΥΠ06",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Complex numbers and integrals",
@@ -388,6 +406,7 @@
       "course_id": "3813",
       "details": {
         "code": "ΥΠ16",
+        "ects": "8.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Data structures",
@@ -409,6 +428,7 @@
       "course_id": "3815",
       "details": {
         "code": "ΥΠ25",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -430,6 +450,7 @@
       "course_id": "3821",
       "details": {
         "code": "ΥΠ21",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Web programming, Java, Databases",
@@ -451,6 +472,7 @@
       "course_id": "3829",
       "details": {
         "code": "ΥΠ27",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Basic background on computer science and communications",
@@ -472,6 +494,7 @@
       "course_id": "3841",
       "details": {
         "code": "ΥΠ23",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Computational Mathematics",
@@ -493,6 +516,7 @@
       "course_id": "3817",
       "details": {
         "code": "ΕΠ50",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Lectures, Labs",
         "prerequisites": "- Programming",
@@ -514,6 +538,7 @@
       "course_id": "3819",
       "details": {
         "code": "ΕΠ52",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face teaching in the lecture hall and laboratory, using specialized software tools",
         "prerequisites": "Logic Design",
@@ -535,6 +560,7 @@
       "course_id": "3823",
       "details": {
         "code": "ΕΠ12",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -556,6 +582,7 @@
       "course_id": "3825",
       "details": {
         "code": "ΕΠ49",
+        "ects": "5.0",
         "language": "",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -577,6 +604,7 @@
       "course_id": "3827",
       "details": {
         "code": "ΕΠ261",
+        "ects": "5.0",
         "language": "",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -598,6 +626,7 @@
       "course_id": "3831",
       "details": {
         "code": "ΕΠ37",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -619,6 +648,7 @@
       "course_id": "3833",
       "details": {
         "code": "ΕΠ13",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Not required",
@@ -640,6 +670,7 @@
       "course_id": "3835",
       "details": {
         "code": "ΕΠ03",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -661,6 +692,7 @@
       "course_id": "3837",
       "details": {
         "code": "ΕΠ245",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "- Basic Programming Principles",
@@ -682,6 +714,7 @@
       "course_id": "3839",
       "details": {
         "code": "ΕΠ54",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Lectures",
         "prerequisites": "The course assumes basic knowledge of mathematics (Computational and Discrete Mathematics, Porbability) as well as Programming.",
@@ -703,6 +736,7 @@
       "course_id": "3843",
       "details": {
         "code": "ΕΠ225",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "no",
@@ -724,6 +758,7 @@
       "course_id": "3851",
       "details": {
         "code": "ΥΠ24",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -745,6 +780,7 @@
       "course_id": "3855",
       "details": {
         "code": "ΥΠ14",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "-",
@@ -766,6 +802,7 @@
       "course_id": "3857",
       "details": {
         "code": "ΥΠ28",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Digital Technologies and Telematics Applications",
@@ -787,6 +824,7 @@
       "course_id": "3845",
       "details": {
         "code": "ΕΠ34",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Computational Mathematics",
@@ -808,6 +846,7 @@
       "course_id": "3847",
       "details": {
         "code": "ΕΠ28",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "no",
@@ -829,6 +868,7 @@
       "course_id": "3849",
       "details": {
         "code": "ΕΠ10",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "-",
@@ -850,6 +890,7 @@
       "course_id": "3853",
       "details": {
         "code": "ΕΠ02",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -871,6 +912,7 @@
       "course_id": "3859",
       "details": {
         "code": "ΕΠ55",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "face to face",
         "prerequisites": "No prerequisites",
@@ -892,6 +934,7 @@
       "course_id": "3861",
       "details": {
         "code": "ΥΠ07",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "-",
@@ -913,6 +956,7 @@
       "course_id": "3863",
       "details": {
         "code": "ΕΠ33",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "- Programming",
@@ -934,6 +978,7 @@
       "course_id": "3865",
       "details": {
         "code": "ΕΠ32",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Networks",
@@ -955,6 +1000,7 @@
       "course_id": "3867",
       "details": {
         "code": "ΕΠ30",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -976,6 +1022,7 @@
       "course_id": "3869",
       "details": {
         "code": "ΕΠ35",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "no",
@@ -997,6 +1044,7 @@
       "course_id": "3871",
       "details": {
         "code": "ΕΠ40",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Programming",
@@ -1018,6 +1066,7 @@
       "course_id": "3877",
       "details": {
         "code": "ΜΥ05",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "basic knowledge of statistics and probability",
@@ -1039,6 +1088,7 @@
       "course_id": "3873",
       "details": {
         "code": "ΕΠ59",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -1060,6 +1110,7 @@
       "course_id": "3875",
       "details": {
         "code": "ΕΠ42",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Operating Systems",
@@ -1081,6 +1132,7 @@
       "course_id": "3879",
       "details": {
         "code": "ΕΠ21",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Basic signal processing",
@@ -1102,6 +1154,7 @@
       "course_id": "3881",
       "details": {
         "code": "ΕΠ39",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Νο prerequisites",
@@ -1123,6 +1176,7 @@
       "course_id": "3883",
       "details": {
         "code": "ΕΠ20",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -1144,6 +1198,7 @@
       "course_id": "3885",
       "details": {
         "code": "ΕΠ43",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Teaching methods",
@@ -1165,6 +1220,7 @@
       "course_id": "3887",
       "details": {
         "code": "ΕΠ19",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Databases",
@@ -1186,6 +1242,7 @@
       "course_id": "3889",
       "details": {
         "code": "ΕΠ60",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Basic knowledge of JavaScript and HTML/CSS. Familiarity with object-oriented programming and web design principles is recommended.",
@@ -1207,6 +1264,7 @@
       "course_id": "3891",
       "details": {
         "code": "ΕΠ11",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -1228,6 +1286,7 @@
       "course_id": "3893",
       "details": {
         "code": "ΕΠ58",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Knowledge of Linear Algebra, basic Theoretical Computer Science, and Programming. Familiarity with mathematical logic and computability is recommended.",
@@ -1249,6 +1308,7 @@
       "course_id": "3895",
       "details": {
         "code": "ΕΠ57",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Basic concepts of linear algebra and signal processing",
@@ -1270,6 +1330,7 @@
       "course_id": "3897",
       "details": {
         "code": "ΥΠ20",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Greek",
         "prerequisites": "-",
@@ -1291,6 +1352,7 @@
       "course_id": "3899",
       "details": {
         "code": "ΕΠ46",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -1312,6 +1374,7 @@
       "course_id": "3901",
       "details": {
         "code": "ΕΠ47",
+        "ects": "5.0",
         "language": "",
         "delivery": "Face-to-face",
         "prerequisites": "-",
@@ -1333,6 +1396,7 @@
       "course_id": "3903",
       "details": {
         "code": "ΕΠ23",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -1354,6 +1418,7 @@
       "course_id": "3905",
       "details": {
         "code": "ΕΠ56",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Databases",
@@ -1375,6 +1440,7 @@
       "course_id": "3907",
       "details": {
         "code": "ΕΠ44",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Basic introductory knowledge of communication networks",
@@ -1396,6 +1462,7 @@
       "course_id": "3909",
       "details": {
         "code": "ΕΠ29",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -1417,6 +1484,7 @@
       "course_id": "3911",
       "details": {
         "code": "ΕΠ31",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "Information Systems",
@@ -1438,6 +1506,7 @@
       "course_id": "3913",
       "details": {
         "code": "ΕΠ53",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face to face",
         "prerequisites": "Basic background on Information Systems Security and on Web Technologies",
@@ -1459,6 +1528,7 @@
       "course_id": "3915",
       "details": {
         "code": "ΕΠ36",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "No formal prerequisites. Familiarity with basic concepts in communication or educational technology is recommended.",
@@ -1480,6 +1550,7 @@
       "course_id": "3917",
       "details": {
         "code": "ΕΠ41",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",
@@ -1501,6 +1572,7 @@
       "course_id": "3919",
       "details": {
         "code": "ΥΠ26",
+        "ects": "5.0",
         "language": "Greek with translation in English",
         "delivery": "Face-to-face",
         "prerequisites": "Programming Ι (ΥΠ02)",
@@ -1522,6 +1594,7 @@
       "course_id": "3921",
       "details": {
         "code": "ΕΠ249",
+        "ects": "5.0",
         "language": "Greek",
         "delivery": "Face-to-face",
         "prerequisites": "",

@@ -207,9 +207,19 @@ def parse_course_detail(html: str) -> dict:
     """Extract a course's details: general info (code, language, prerequisites),
     workload (hours), course content (syllabus), learning outcomes, and skills."""
     soup = BeautifulSoup(html, "html.parser")
+
+    # Meta badges near the course title (Semester, ECTS, type, Erasmus).
+    # These live OUTSIDE the articleBody, so parse them from the full document.
+    ects = ""
+    for span in soup.find_all("span", class_="meta-badge"):
+        m = re.match(r"ECTS:\s*([\d.]+)", _clean(span.get_text()), re.I)
+        if m:
+            ects = m.group(1)
+            break
+
     body = soup.find(attrs={"itemprop": "articleBody"})
     if not body:
-        return {}
+        return {"ects": ects} if ects else {}
 
     for tag in body.find_all(["style", "script"]):
         tag.decompose()
@@ -250,6 +260,7 @@ def parse_course_detail(html: str) -> dict:
 
     return {
         "code": fields.get("Code", ""),
+        "ects": ects,
         "language": fields.get("Language", ""),
         "delivery": fields.get("Delivery", ""),
         "prerequisites": fields.get("Prerequisites", ""),

@@ -116,6 +116,7 @@ def _lean_course(c: dict) -> dict:
         "type": c.get("type"),
         "semester": c.get("semester"),
         "code": (c.get("details") or {}).get("code", ""),
+        "ects": (c.get("details") or {}).get("ects", ""),
     }
 
 
@@ -428,26 +429,33 @@ def recommend_courses(
 def compute_semester_workload(
     semester: Annotated[int, Field(description="Semester number (1-8) to compute the total workload for.")],
 ) -> dict:
-    """Compute the aggregate teaching/study workload of a semester. Sums the lecture,
-    lab, study, and project hours across all courses of the given semester and reports
-    totals, the per-component breakdown, the number of courses, and the average workload
-    per course."""
+    """Compute the aggregate workload of a semester. Sums the lecture, lab, study, and
+    project hours, as well as the ECTS credits, across all courses of the given semester,
+    and reports totals, the per-component breakdown, the number of courses, the average
+    workload per course, and the total ECTS. Note: for semesters 5-8 the listed courses
+    are a pool of electives, so total ECTS reflects all offered courses, not a single
+    student's 30-ECTS selection."""
     data = _load()
     target = f"Semester {semester}"
     courses = [c for c in data.get("courses", []) if c.get("semester") == target]
 
     components = ("lectures", "lab", "study", "project")
     totals = {k: 0.0 for k in components}
+    total_ects = 0.0
     per_course = []
     for c in courses:
-        wl = (c.get("details") or {}).get("workload") or {}
+        det = c.get("details") or {}
+        wl = det.get("workload") or {}
         course_hours = {k: _hours(wl.get(k, "")) for k in components}
         course_total = sum(course_hours.values())
+        course_ects = _hours(det.get("ects", ""))
+        total_ects += course_ects
         for k in components:
             totals[k] += course_hours[k]
         per_course.append({
             "title": c.get("title"),
-            "code": (c.get("details") or {}).get("code", ""),
+            "code": det.get("code", ""),
+            "ects": course_ects,
             "hours": course_hours,
             "total_hours": round(course_total, 1),
         })
@@ -458,6 +466,7 @@ def compute_semester_workload(
         "semester": semester,
         "course_count": n,
         "total_hours": grand_total,
+        "total_ects": round(total_ects, 1),
         "breakdown_hours": {k: round(v, 1) for k, v in totals.items()},
         "average_hours_per_course": round(grand_total / n, 1) if n else 0.0,
         "courses": per_course,

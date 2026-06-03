@@ -140,7 +140,8 @@ class MCPServerInfoCollector:
             "Yahoo Finance": "yahoo-finance-mcp",
             "Amazon Shopping": "amazon-mcp-server",
             "OpenAPI Explorer": "openapi-mcp-server",
-            "Time MCP": "time-mcp"
+            "Time MCP": "time-mcp",
+            "HUA Informatics": "hua-dit-mcp"
         }
         
         # Load local commands and create server configs

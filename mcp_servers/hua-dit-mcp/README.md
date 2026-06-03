@@ -25,7 +25,7 @@ scrape_hua.py  ──(run once)──>  hua_data.json  ──(read at runtime)�
 |---|---|
 | `list_courses(semester?, course_type?)` | Undergraduate courses, filterable by semester (1-8) and type (Compulsory/Elective) — lean |
 | `search_course(query)` | Search the catalog by name/keyword — lean |
-| `get_course_details(course_name)` | Full course details: code, language, prerequisites, workload, syllabus, learning outcomes, skills |
+| `get_course_details(course_name)` | Full course details: code, ECTS, language, prerequisites, workload, syllabus, learning outcomes, skills |
 | `list_professors()` | All teaching staff with titles, emails, research fields (lean) |
 | `find_professor(name)` | Find a professor by name (lean) |
 | `find_professors_by_research(field)` | Find professors by research area (lean) |
@@ -42,7 +42,7 @@ scrape_hua.py  ──(run once)──>  hua_data.json  ──(read at runtime)�
 | `get_useful_links(category?)` | Useful links / online services (e-Class, Student Information System, account, cloud, VPN, social), filterable by category |
 | `find_thesis_advisor(topic, limit?)` | Ranks faculty by fit for a thesis topic (matches research field + bio + publications), with relevance score and matched keywords |
 | `recommend_courses(interest, limit?)` | Ranks courses by fit for a career goal / skill / interest (matches title + skills + learning outcomes + syllabus) |
-| `compute_semester_workload(semester)` | Aggregates lecture/lab/study/project hours across a semester's courses: totals, breakdown, per-course and average |
+| `compute_semester_workload(semester)` | Aggregates lecture/lab/study/project hours and ECTS across a semester's courses: totals, breakdown, per-course, average, and total ECTS |
 | `get_latest_news(limit)` | **LIVE** — latest news/announcements (title, date, URL), fetched in real time |
 
 ## Setup

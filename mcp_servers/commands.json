@@ -151,5 +151,10 @@
     "cmd": "python -m mcp_server_time",
     "env": [],
     "cwd": "../time-mcp"
+  },
+  "HUA Informatics": {
+    "cmd": "python -m hua_dit_mcp.server",
+    "env": [],
+    "cwd": "../hua-dit-mcp"
   }
 }

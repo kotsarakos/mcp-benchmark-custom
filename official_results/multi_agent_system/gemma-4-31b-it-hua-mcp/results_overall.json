@@ -1,0 +1,32 @@
+{
+  "model": "gemma-4-31b-it",
+  "Rule-based": {
+    "Schema Understanding": {
+      "Valid Tool Name Rate": 1.0,
+      "Schema Compliance": 1.0,
+      "Execution Success": 1.0
+    }
+  },
+  "LLM Judge": {
+    "Task Completion": {
+      "Task Fulfillment": 0.608,
+      "Information Grounding": 0.806
+    },
+    "Tool Usage": {
+      "Tool Appropriateness": 0.764,
+      "Parameter Accuracy": 0.832
+    },
+    "Planning Effectiveness": {
+      "Dependency Awareness": 0.524,
+      "Parallelism and Efficiency": 0.345
+    }
+  },
+  "Efficiency_metrics": {
+    "avg_total_tokens": 483000,
+    "avg_prompt_tokens": 455200,
+    "avg_output_tokens": 27800,
+    "avg_tool_calls_per_task": 66.8,
+    "avg_total_rounds": 4.1
+  },
+  "Overall Score": 0.735
+}

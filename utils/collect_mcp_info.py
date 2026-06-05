@@ -144,7 +144,7 @@ class MCPServerInfoCollector:
             "HUA Informatics": "hua-dit-mcp"
         }
         
-        # Load local commands and create server configs
+        # Load local commands and create server config
         for server_name, config in self.local_config_loader.local_commands.items():
             cmd_parts = config.get('cmd', '').split()
             if not cmd_parts:

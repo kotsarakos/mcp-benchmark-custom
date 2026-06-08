@@ -1,0 +1,232 @@
+/* ====================================================================
+   Multi-Agent MCP demo — all custom styling lives here.
+   Injected once at start-up by app.ui.load_css().
+   ==================================================================== */
+
+/* --------------------------------------------------------------------
+   Inter — a clean, modern UI font. Applied app-wide via Streamlit's
+   font tokens so headings, body and widgets all share it.
+   -------------------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+html, body, [class*="st-"], button, input, textarea {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+/* …but keep Material icon ligatures rendering as glyphs (sidebar toggle, etc.),
+   not as raw text like "double_arrow_right". */
+[data-testid="stIconMaterial"],
+.material-icons, .material-icons-outlined, .material-icons-round, .material-icons-sharp,
+span[class*="material-symbols"], i[class*="material-symbols"] {
+  font-family: 'Material Symbols Rounded', 'Material Symbols Outlined',
+               'Material Icons' !important;
+}
+
+/* --------------------------------------------------------------------
+   App header — branded, thesis-grade title block.
+   -------------------------------------------------------------------- */
+.app-header { margin: 0 0 .25rem 0; }
+.app-header .app-title {
+  font-size: 2.1rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.15;
+  margin: 0;
+}
+.app-header .app-title .accent { color: #3b82f6; }
+.app-header .app-eyebrow {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #7d8590;
+  margin-bottom: .35rem;
+}
+.app-header .app-sub {
+  font-size: 14px;
+  color: #9aa4b0;
+  margin: .35rem 0 0 0;
+  max-width: 760px;
+}
+
+/* --------------------------------------------------------------------
+   Claude-style shimmer for the live "thinking" status line.
+   The animation keeps running across placeholder re-renders because the
+   `.claude-thinking` class is injected once and only the inner text changes.
+   -------------------------------------------------------------------- */
+@keyframes claude-shimmer {
+  0%   { background-position:  200% 0; }
+  100% { background-position: -200% 0; }
+}
+.claude-thinking {
+  display: inline-block;
+  background: linear-gradient(90deg,
+    rgba(180, 180, 180, .45) 0%,
+    rgba(255, 255, 255, 1)   50%,
+    rgba(180, 180, 180, .45) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+          background-clip: text;
+  animation: claude-shimmer 2.6s linear infinite;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: .1px;
+}
+
+/* --------------------------------------------------------------------
+   Compact server "chips" shown in the welcome message.
+   -------------------------------------------------------------------- */
+.server-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  margin: 2px 4px 2px 0;
+  border: 1px solid #2b313e;
+  border-radius: 12px;
+  font-size: 12px;
+  background: #161b22;
+  color: #cfd8dc;
+}
+
+/* --------------------------------------------------------------------
+   Base/HUA scope switch — pinned with position:fixed onto the native
+   bottom chat bar, just left of the ↑ send arrow. `right`/`bottom`
+   align it onto the bar (anchored to the viewport's bottom-right,
+   where the arrow lives — nudge to taste).
+   -------------------------------------------------------------------- */
+.st-key-scopeswitch {
+  position: fixed;
+  right: 139px;            /* clears the ↑ send button */
+  bottom: 66px;            /* aligns with the ↑ arrow inside the bar */
+  z-index: 1000000;
+  width: auto !important;
+}
+.st-key-scopeswitch [data-testid="stElementContainer"],
+.st-key-scopeswitch [data-testid="stElementContainer"] > div { margin: 0 !important; }
+
+/* segmented pill: dark track that suits the input, with a clear selected pill */
+.st-key-scopeswitch [data-testid="stButtonGroup"] {
+  background: #3a3f4b !important;
+  border-radius: 999px !important;
+  padding: 3px !important;
+  gap: 0 !important;
+}
+.st-key-scopeswitch button {
+  border: none !important;
+  background: transparent !important;
+  border-radius: 999px !important;
+  color: #c8ccd4 !important;
+  min-height: 26px !important;
+  padding: 2px 16px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+/* the SELECTED option — bright white pill so the active scope is obvious */
+.st-key-scopeswitch button[data-testid="stBaseButton-segmented_controlActive"] {
+  background: #ffffff !important;
+  color: #111827 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .35) !important;
+}
+
+/* Always reserve scrollbar space so the layout never shifts when messages
+   appear, keeping the fixed-positioned switch aligned with the ↑ arrow. */
+html { overflow-y: scroll !important; }
+
+/* --------------------------------------------------------------------
+   Professional sidebar
+   -------------------------------------------------------------------- */
+
+/* Brand block at the top */
+.sb-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0 20px;
+  border-bottom: 1px solid #21262d;
+  margin-bottom: 20px;
+}
+.sb-logo { font-size: 28px; line-height: 1; }
+.sb-logo-img { width: 40px; height: 40px; border-radius: 8px; object-fit: contain; }
+.sb-app-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #e6edf3;
+  letter-spacing: -.01em;
+}
+.sb-app-version {
+  font-size: 11px;
+  color: #7d8590;
+  margin-top: 1px;
+}
+
+/* Section labels */
+.sb-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  color: #7d8590;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+/* Stats grid */
+.sb-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 22px;
+}
+.sb-stat {
+  background: #161b22;
+  border: 1px solid #21262d;
+  border-radius: 8px;
+  padding: 10px 8px 8px;
+  text-align: center;
+}
+.sb-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #e6edf3;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.sb-stat-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin: 4px auto 6px;
+  background: #3b82f6;
+  box-shadow: 0 0 6px rgba(59, 130, 246, .6);
+}
+.sb-stat-label {
+  font-size: 10px;
+  color: #7d8590;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+/* Agent list */
+.sb-agent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+.sb-agent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #c9d1d9;
+  background: #161b22;
+  border: 1px solid #21262d;
+}
+.sb-agent-icon { font-size: 14px; }
+
+/* Push clear button to the bottom */
+.sb-spacer { height: 16px; }

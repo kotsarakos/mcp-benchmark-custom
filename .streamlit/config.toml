@@ -1,0 +1,11 @@
+# Streamlit theme for the Multi-Agent MCP demo (app/app.py).
+# A cohesive dark palette with a HUA-blue accent — keeps the whole UI
+# consistent without per-widget CSS.
+
+[theme]
+base = "dark"
+primaryColor = "#3b82f6"             # HUA-blue accent (buttons, switch, links)
+backgroundColor = "#0e1117"          # main canvas
+secondaryBackgroundColor = "#161b22" # sidebar / cards / chips
+textColor = "#e6edf3"
+font = "sans serif"

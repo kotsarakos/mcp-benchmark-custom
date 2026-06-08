@@ -37,8 +37,12 @@ def setup_page() -> None:
     )
     load_css()
 
+    from multi_agent_system import config as _cfg
+    model_name = _cfg.DEFAULT_MODEL
+    model_short = model_name.split("/")[-1]
+
     st.markdown(
-        """
+        f"""
         <div class="app-header">
           <span class="app-eyebrow">Harokopio University · DIT — bachelor thesis</span>
           <h1 class="app-title">Multi-Agent MCP — Live Chat</h1>
@@ -47,6 +51,9 @@ def setup_page() -> None:
             Executor calls MCP tools to fulfil them, and the Verifier checks each
             step — you see every decision as it happens.
           </p>
+          <div class="app-model-badge" title="{model_name}">
+            <span class="app-model-dot"></span>{model_short}
+          </div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -93,6 +100,21 @@ def _render_sidebar() -> None:
             <div class="sb-stat-dot on"></div>
             <div class="sb-stat-label">Online</div>
           </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    from multi_agent_system import config as _cfg
+    model_name = _cfg.DEFAULT_MODEL
+    # Show only the part after the last "/" (e.g. "gemma-4-31b-it")
+    model_short = model_name.split("/")[-1]
+    st.markdown('<div class="sb-section-label">MODEL</div>', unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div class="sb-model-row">
+          <span class="sb-model-dot"></span>
+          <span class="sb-model-name" title="{model_name}">{model_short}</span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -153,6 +175,28 @@ def render_scope_switch() -> bool:
 # ───────────────────────────────────────────────────────────────────
 # Run-trace expanders
 # ───────────────────────────────────────────────────────────────────
+def _task_levels(task_defs: Dict[str, Any]) -> Dict[str, int]:
+    """Assign each task a step level via topological sort on its dependencies."""
+    levels: Dict[str, int] = {}
+    resolved: set = set()
+    remaining = dict(task_defs)
+    level = 0
+    while remaining:
+        ready = [
+            tid for tid, tdef in remaining.items()
+            if all(d in resolved for d in (tdef.get("dependencies") or []))
+        ]
+        if not ready:
+            ready = list(remaining.keys())  # guard against cycles
+        for tid in ready:
+            levels[tid] = level
+        resolved.update(ready)
+        for tid in ready:
+            del remaining[tid]
+        level += 1
+    return levels
+
+
 def render_trace(trace: Dict[str, Any]) -> None:
     """Render plan, tool calls, failures and summary metrics for one run."""
     plan = trace.get("plan") or []
@@ -164,10 +208,9 @@ def render_trace(trace: Dict[str, Any]) -> None:
     elapsed = trace.get("elapsed", 0.0)
     total_rounds = trace.get("total_rounds", 0)
 
-    # The planner explicitly clears state["plan"] = [] after final synthesis
-    # (planner.py:348/533/616/674), so at this point `plan` is usually empty
-    # even though tasks did execute. Fall back to task_definitions, which
-    # survive the clear and tell us exactly what the planner created.
+    # The planner clears state["plan"] = [] after each step, so `plan` is
+    # usually [] by the time we get here. Reconstruct step grouping from
+    # task_definitions using a topological-level sort on dependencies.
     if plan:
         with st.expander(f"🧠 Plan ({len(plan)} step(s))"):
             for i, step in enumerate(plan):
@@ -179,21 +222,34 @@ def render_trace(trace: Dict[str, Any]) -> None:
                     ttype = tdef.get("task_type", "tool")
                     st.markdown(f"- `{tid}` · *{ttype}*  \n  {desc}")
     elif task_defs:
-        with st.expander(f"🧠 Tasks executed ({len(task_defs)})"):
-            for tid, tdef in task_defs.items():
-                desc = tdef.get("description") or "(no description)"
-                ttype = tdef.get("task_type", "tool")
-                deps = tdef.get("dependencies", []) or []
-                done = tid in completed
-                badge = "✅" if done else "⏺"
-                line = f"{badge} `{tid}` · *{ttype}*"
-                if deps:
-                    line += f" · deps: {', '.join(f'`{d}`' for d in deps)}"
-                st.markdown(f"{line}  \n  {desc}")
-                if done:
-                    ans = completed[tid].get("final_answer") or ""
-                    if ans:
-                        st.caption(f"↳ {ans[:300]}{'…' if len(ans) > 300 else ''}")
+        levels = _task_levels(task_defs)
+        n_steps = max(levels.values()) + 1 if levels else 1
+        with st.expander(
+            f"🧠 Tasks executed ({len(task_defs)} task{'s' if len(task_defs) != 1 else ''}"
+            f" in {n_steps} step{'s' if n_steps != 1 else ''})"
+        ):
+            for lvl in range(n_steps):
+                tasks_at_lvl = [tid for tid, l in levels.items() if l == lvl]
+                parallel = len(tasks_at_lvl) > 1
+                st.markdown(
+                    f"**Step {lvl}** · {len(tasks_at_lvl)} task{'s' if len(tasks_at_lvl) != 1 else ''}"
+                    f"{' *(parallel)*' if parallel else ''}"
+                )
+                for tid in tasks_at_lvl:
+                    tdef = task_defs[tid]
+                    desc = tdef.get("description") or "(no description)"
+                    ttype = tdef.get("task_type", "tool")
+                    deps = tdef.get("dependencies") or []
+                    done = tid in completed
+                    badge = "✅" if done else "⏺"
+                    line = f"&nbsp;&nbsp;{badge} `{tid}` · *{ttype}*"
+                    if deps:
+                        line += f" · deps: {', '.join(f'`{d}`' for d in deps)}"
+                    st.markdown(f"{line}  \n  &nbsp;&nbsp;&nbsp;&nbsp;{desc}")
+                    if done:
+                        ans = completed[tid].get("final_answer") or ""
+                        if ans:
+                            st.caption(f"&nbsp;&nbsp;&nbsp;&nbsp;↳ {ans[:300]}{'…' if len(ans) > 300 else ''}")
     else:
         with st.expander("🧠 Plan"):
             st.info(
@@ -237,7 +293,7 @@ def render_trace(trace: Dict[str, Any]) -> None:
                 st.markdown(f"- `{tid}` on **{srv}** — *{etype}*  \n  {reason}")
 
     cols = st.columns(4)
-    cols[0].metric("Planner cycles", total_rounds)
+    cols[0].metric("Planner Cycles", total_rounds)
     cols[1].metric("Tool calls", len(calls))
     cols[2].metric("Replans", replans)
     cols[3].metric("Wall time", f"{elapsed:.1f}s")

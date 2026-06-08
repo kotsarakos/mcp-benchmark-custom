@@ -49,6 +49,28 @@ span[class*="material-symbols"], i[class*="material-symbols"] {
   margin: .35rem 0 0 0;
   max-width: 760px;
 }
+.app-model-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  border: 1px solid #21262d;
+  background: #161b22;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9aa4b0;
+  letter-spacing: .01em;
+}
+.app-model-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+  box-shadow: 0 0 5px rgba(34, 197, 94, .55);
+}
 
 /* --------------------------------------------------------------------
    Claude-style shimmer for the live "thinking" status line.
@@ -134,6 +156,25 @@ span[class*="material-symbols"], i[class*="material-symbols"] {
    appear, keeping the fixed-positioned switch aligned with the ↑ arrow. */
 html { overflow-y: scroll !important; }
 
+/* Hide the default user avatar icon in chat messages. */
+[data-testid="stChatMessageAvatarUser"] { display: none !important; }
+
+/* Enlarge the assistant (planner) chat avatar. */
+[data-testid="stChatMessageAvatarAssistant"],
+[data-testid="stChatMessageAvatarAssistant"] > *,
+[data-testid="stChatMessageAvatarAssistant"] > * > * {
+  width: 96px !important;
+  height: 96px !important;
+  min-width: 96px !important;
+  min-height: 96px !important;
+  border-radius: 10px !important;
+}
+[data-testid="stChatMessageAvatarAssistant"] img {
+  width: 96px !important;
+  height: 96px !important;
+  object-fit: contain !important;
+}
+
 /* --------------------------------------------------------------------
    Professional sidebar
    -------------------------------------------------------------------- */
@@ -148,7 +189,7 @@ html { overflow-y: scroll !important; }
   margin-bottom: 20px;
 }
 .sb-logo { font-size: 28px; line-height: 1; }
-.sb-logo-img { width: 40px; height: 40px; border-radius: 8px; object-fit: contain; }
+.sb-logo-img { width: 64px; height: 64px; border-radius: 10px; object-fit: contain; }
 .sb-app-name {
   font-size: 15px;
   font-weight: 700;
@@ -205,6 +246,34 @@ html { overflow-y: scroll !important; }
   color: #7d8590;
   text-transform: uppercase;
   letter-spacing: .06em;
+}
+
+/* Model row */
+.sb-model-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: #161b22;
+  border: 1px solid #21262d;
+  margin-bottom: 22px;
+}
+.sb-model-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+  box-shadow: 0 0 5px rgba(34, 197, 94, .55);
+}
+.sb-model-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #c9d1d9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Agent list */

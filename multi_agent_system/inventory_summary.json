@@ -1,9 +1,9 @@
 {
-  "collection_timestamp": "2026-04-09T01:36:37.059357",
-  "total_servers": 28,
-  "successful_connections": 28,
+  "collection_timestamp": "2026-06-08T22:41:03.935073",
+  "total_servers": 29,
+  "successful_connections": 29,
   "failed_connections": 0,
-  "total_tools_discovered": 257,
+  "total_tools_discovered": 278,
   "batch_size": 5,
   "total_batches": 6,
   "connection_mode": "individual",

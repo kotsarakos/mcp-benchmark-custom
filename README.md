@@ -1,14 +1,15 @@
 # Multi-Agent MCP System
 
-> Designed, implemented, and benchmarked by **Konstantinos Kotsaras**.
+> Designed, implemented, and benchmarked by **Konstantinos Kotsaras**  
+> Bachelor thesis — Department of Informatics and Telematics, Harokopio University of Athens (HUA · DIT)
 
 A multi-agent system built on top of the Model Context Protocol (MCP) that
-answers complex user queries by coordinating a pool of specialized LLM
+answers complex user queries by coordinating a pool of specialised LLM
 agents and external tool servers. The system decomposes a query into a
 directed acyclic graph (DAG) of tasks, routes each task to the right MCP
-server, executes it, verifies the answer, and synthesizes a final
+server, executes it, verifies the answer, and synthesises a final
 response. When a step fails it replans automatically using the
-accumulated failure history so the same mistake is not repeated.
+accumulated failure history so the same mistake is never repeated.
 
 The repository also ships a full benchmark harness against MCP-Bench so
 the multi-agent system can be compared head-to-head against the official
@@ -18,7 +19,7 @@ single-agent runner on identical tasks and identical judging.
 
 ## Architecture
 
-The system is **not** a fixed pipeline. The Planner sits at the centre
+The Planner sits at the centre
 of a loop and chooses, on every cycle, which downstream agents (if any)
 need to run before returning control to itself. Three possible paths
 through one cycle:
@@ -53,26 +54,27 @@ LLM reasoning over the live server inventory. Servers that previously
 failed for a given task are excluded from selection
 (`excluded_servers[task_id]`).
 
-### Executor Agent(ReAct loop)
+### Executor Agent (ReAct loop)
 Runs each task with a ReAct (Reason + Act) loop. The LLM cycles through
 **Thought → Action (tool call) → Observation** until it decides to stop
 with a final result:
 
-```
-   ┌──────────────────────────────────────────────┐
-   │                                              │
-   ▼                                              │
-┌─────────┐       ┌─────────┐       ┌───────────┐ │
-│ Thought ├──────►│ Action  ├──────►│Observation├─┘
-│ (why?)  │       │(tool +  │       │           │
-│         │       │  args)  │       │           │
-└─────────┘       └────┬────┘       └───────────┘
-                       │
-                       └──► STOP (final answer)
+```mermaid
+%%{ init: { "flowchart": { "curve": "basis" } } }%%
+flowchart LR
+    T["💭 Thought\n(why?)"]
+    A["⚡ Action\n(tool + args)"]
+    O["👁️ Observation\n(tool result)"]
+    S(["✅ STOP\n(final answer)"])
+
+    T --> A
+    A -->|done| S
+    A --> O
+    O -->|next iteration| T
 ```
 
 Duplicate `(tool, args)` pairs are blocked to prevent infinite tool loops.
-Per-call observations are truncated to 4000 chars (matching the official
+Per-call observations are truncated to 4 000 chars (matching the official
 agent) so the prompt stays inside the context window.
 
 ### Answer Agent
@@ -84,12 +86,12 @@ returned.
 ### Verifier Agent
 Compares each task's answer against its original description and decides:
 
-- `pass` — all tasks answered correctly; the Planner advances to the next
-  step.
+- `pass` — all tasks answered correctly; the Planner advances to the next step.
 - `fail` — one or more tasks failed; the Planner is invoked for a replan.
-- `impossible` — the query cannot be answered (e.g. a living person's
-  death date); replanning stops and the Planner runs unanswerable
-  synthesis from whatever was collected.
+- `impossible` — the query cannot be answered (e.g. predicting future
+  stock prices or accessing data no configured MCP server holds);
+  replanning stops and the Planner runs unanswerable synthesis from
+  whatever was collected.
 
 ---
 
@@ -105,24 +107,6 @@ Prefer environment variables over editing the file directly.
 | `OPENROUTER_API_KEY` | `api_key` placeholder | OpenRouter key (preferred) |
 | `MULTIAGENT_API_KEY` | falls back from above | Generic key for other backends |
 
-### Backend-specific behavior
-
-`make_model_kwargs()` in `config.py` tailors `extra_body` per backend:
-
-- **OpenRouter** → injects provider routing (`Together, DeepInfra, Venice,
-  AkashML, fallbacks=True`), byte-for-byte identical to the official
-  MCP-Bench runner so results stay comparable.
-- **Local vLLM** → sets `chat_template_kwargs.enable_thinking=False` to
-  disable qwen3.x "thinking mode" output that would otherwise exhaust the
-  completion budget before any JSON is produced.
-
-If you switch the model to a reasoning family (qwen3.x, deepseek-r1,
-OpenAI o-series), remove the `response_format={"type":"json_object"}`
-kwarg at each agent's `ChatOpenAI(...)` call site — the strict-JSON
-constraint triggers runaway chain-of-thought on these models. The Strict
-JSON instructions baked into `prompts/agent_prompts.py` are enough to
-enforce the format on their own.
-
 ### Per-agent model overrides
 
 By default all five agents share `DEFAULT_MODEL`. Override any of
@@ -130,6 +114,39 @@ By default all five agents share `DEFAULT_MODEL`. Override any of
 `MODEL_FOR_ANSWERING`, `MODEL_FOR_VERIFIER` in `config.py` if you want a
 heterogeneous pipeline (e.g. a cheaper model for retrieval, a stronger
 one for planning).
+
+---
+
+## Requirements & Installation
+
+**Python 3.10+** is required.
+
+### 1. Clone and install core dependencies
+
+```bash
+git clone <repo-url>
+cd mcp-bench
+
+pip install \
+  langchain-core langchain-openai \
+  openai httpx \
+  mcp[cli]>=1.9.0 \
+  streamlit \
+  json_repair \
+  python-dotenv \
+  pydantic
+```
+
+### 2. Install MCP server dependencies
+
+Each MCP server ships its own Python package. Install them all at once:
+
+```bash
+pip install -r mcp_servers/requirements.txt
+```
+
+> Some servers require npm packages (e.g. `context7`). Run
+> `mcp_servers/install.sh` to handle those automatically.
 
 ---
 
@@ -194,21 +211,32 @@ system end-to-end without writing a driver script:
 
 ```bash
 pip install streamlit
-streamlit run demo.py
+streamlit run app/app.py
 ```
 
-Open <http://localhost:8501>, type a question, and the page shows the
-final answer plus the full trajectory — the Planner's DAG, every tool
-call (server, args, truncated result), any replans, and the wall-clock
-stats. Trace data is read from `TraceRecorder` after each run.
+Open <http://localhost:8501> and start chatting. Features:
+
+- **Live streaming** — every Planner cycle, tool call, and Verifier
+  decision appears in the chat as it happens, with a progress bar while
+  MCP servers connect.
+- **Trace expanders** — after each answer, collapsible panels show the
+  full DAG (tasks, dependencies, step levels), every tool call with its
+  parameters and truncated result, any replans, and wall-clock stats.
+- **Base / HUA scope switch** — toggle between the full pool of 29 MCP
+  servers (Base) and the HUA DIT server only (HUA mode), pinned to the
+  bottom chat bar.
+- **Session sidebar** — live counts of connected servers and messages
+  sent, current model name, agent roster, and a one-click conversation
+  reset.
 
 ---
 
 ## MCP Servers
 
-MCP-Bench ships with **28** MCP servers spanning science, finance, media,
-geo, and developer tooling. Each task in the benchmark is routed to one
-or more of these:
+MCP-Bench ships with **28** general-purpose MCP servers spanning science,
+finance, media, geo, and developer tooling. The repository also includes
+one custom server for HUA benchmarking. Each task in the benchmark is
+routed to one or more of these:
 
 | Server | Domain |
 |---|---|
@@ -221,6 +249,7 @@ or more of these:
 | [FruityVice](https://github.com/CelalKhalilov/fruityvice-mcp) | Fruit nutrition and dietary data |
 | [Game Trends](https://github.com/halismertkir/game-trends-mcp) | Gaming industry stats and trends |
 | [Google Maps](https://github.com/cablate/mcp-google-map) | Location, geocoding, and mapping |
+| [HUA DIT](mcp_servers/hua-dit-mcp/) | HUA Dept. of Informatics — courses, staff, programme info *(custom, thesis-specific)* |
 | [Huge Icons](https://github.com/hugeicons/mcp-server) | Icon search and design resources |
 | [Hugging Face](https://github.com/shreyaskarnik/huggingface-mcp-server) | ML models, datasets, AI capabilities |
 | [Math MCP](https://github.com/EthanHenrickson/math-mcp) | Mathematical calculations |
@@ -249,18 +278,29 @@ To reproduce the numbers in the table below, run:
 
 ```bash
 python mcpbench_benchmark/mcpbench_benchmark.py \
-    --tasks-file mcpbench_tasks_single_runner_format.json \
+    --tasks-file mcpbench_benchmark/mcpbench_tasks_single_runner_format.json \
     --model-name $MULTIAGENT_MODEL \
-    --output results/mcpbench_run.json
+    --output mcpbench_benchmark/results/mcpbench_run.json
 ```
 
 The same script accepts the `multi_2server` and `multi_3server` task
-files. Per-task traces, per-server aggregates, and a flat summary are
-all written next to `--output`.
+files (also inside `mcpbench_benchmark/`). Per-task traces, per-server
+aggregates, and a flat summary are all written next to `--output`.
+
+To run the HUA-specific benchmark (3 tasks targeting the HUA DIT server):
+
+```bash
+python mcpbench_benchmark/mcpbench_benchmark.py \
+    --tasks-file mcpbench_benchmark/mcpbench_tasks_hua_single_runner_format.json \
+    --model-name $MULTIAGENT_MODEL \
+    --output mcpbench_benchmark/results/hua_run.json
+```
 
 ---
 
 ## Benchmark Results
+
+### MCP-Bench (104 tasks)
 
 Average **Overall Score** computed by the official MCP-Bench evaluator over:
 
@@ -290,49 +330,22 @@ consistent gain is in **Schema Understanding** (clean tool-name
 resolution and JSON compliance), reflecting the dedicated Executor +
 Verifier loop catching malformed tool calls before they reach the judge.
 
-See [`results/METRICS.md`](results/METRICS.md) for the exact aggregation
+### HUA DIT benchmark (3 tasks — `gemma-4-31b-it`)
+
+Tasks targeting the custom HUA DIT server (courses, staff, programme info):
+
+| System | Overall Score | Task Completion | Tool Usage | Planning Effectiveness | Schema Understanding |
+|---|---:|---:|---:|---:|---:|
+| This system | **0.735** | 0.707 | 0.798 | 0.435 | 1.000 |
+| Official runner | 0.720 | 0.698 | 0.738 | 0.442 | 1.000 |
+
+Both systems achieve perfect Schema Understanding on the HUA server
+(clean local JSON schema). The multi-agent system gains on Task
+Completion (+0.009) and Tool Usage (+0.060) for a net +0.015 overall.
+
+See [`official_results/METRICS.md`](official_results/METRICS.md) for the exact aggregation
 formula (mode-weighted, normalized, then averaged across the four
 domains).
-
----
-
-## Replanning
-
-When the Verifier returns `fail`, the system:
-
-1. Records a structured failure entry (task, server, error type, reason)
-   in `failure_history`.
-2. Increments `server_failure_counts[task_id][server]`. Non-transient
-   failures push the server into `excluded_servers[task_id]` after the
-   second occurrence (transient errors like timeouts / rate-limits never
-   exclude).
-3. Calls the Planner with the full failure history as context, so the
-   new plan avoids known bad servers and reformulates the task if needed.
-4. Resets `current_step_index = 0` and re-runs the loop.
-
-The loop is capped by `max_replans` (default 5) and a hard
-`max_total_steps` (default 20), matching the official MCP-Bench
-`execution.max_execution_rounds`.
-
----
-
-## State Management
-
-All agents share a single state dictionary that flows through the loop.
-Each agent returns a partial update (only the keys it modified); the
-update is merged into the full state by `merge_state()` using one of
-three strategies declared in `utils.py`:
-
-- **Replace** (`plan`, `verification_status`, `current_step_index`, ...)
-  — the new value overwrites the existing one.
-- **Dict merge** (`completed_tasks_results`) — entries accumulate across
-  steps so verified results from earlier steps are preserved through a
-  replan.
-- **List extend** (`failure_history`, `messages`, `errors`,
-  `finished_task_ids`) — entries are appended; nothing is ever dropped.
-
-`None` values in an agent's update are skipped, so an agent can signal
-"no change" for a key without accidentally clearing it.
 
 ---
 
@@ -341,6 +354,7 @@ three strategies declared in `utils.py`:
 ```
 multi_agent_system/
 ├── graph.py              # run_graph() — loop driver
+├── state.py              # AgentState TypedDict — shared state schema
 ├── config.py             # LLM backend + model selection
 ├── utils.py              # state merge, failure handling, helpers
 ├── trace_recorder.py     # MCP-Bench-compatible trace capture (opt-in)
@@ -355,14 +369,40 @@ multi_agent_system/
     ├── answer.py
     └── verifier.py
 
+app/                      # Streamlit demo UI
+├── app.py                # orchestration (chat loop, session state)
+├── backend.py            # pipeline adapter (run_graph, scope, traces)
+├── ui.py                 # all Streamlit rendering (sidebar, trace, welcome)
+├── log_stream.py         # live log → Streamlit status updates
+└── static/
+    ├── styles.css        # all custom CSS (injected once at start-up)
+    ├── planner.png       # assistant chat avatar
+    └── user_avatar.png   # user chat avatar
+
 mcpbench_benchmark/
-└── mcpbench_benchmark.py # benchmark harness: run + evaluate
+├── mcpbench_benchmark.py                        # benchmark harness: run + evaluate
+├── mcpbench_tasks_single_runner_format.json     # 56 single-server tasks
+├── mcpbench_tasks_multi_2server_runner_format.json
+├── mcpbench_tasks_multi_3server_runner_format.json
+└── mcpbench_tasks_hua_single_runner_format.json # HUA DIT tasks
 
 benchmark/
-└── evaluator.py          # MCP-Bench LLM judge + rule-based metrics
-                          # (vendored, read-only — never modified)
+├── evaluator.py          # MCP-Bench LLM judge + rule-based metrics
+├── runner.py             # official single-agent runner
+├── results_aggregator.py
+└── results_formatter.py
 
-results/
+utils/
+├── collect_mcp_info.py   # generates inventory_summary.json
+├── error_handler.py
+└── local_server_config.py
+
+mcp_servers/
+├── commands.json         # server start commands (used by inventory script)
+├── api_key.example       # template for external API keys
+└── <server-name>/        # one directory per MCP server
+
+official_results/
 ├── METRICS.md            # aggregation formula reference
 ├── multi_agent_system/<model>/   # this system's per-mode results
 └── official_runner/<model>/      # official runner's per-mode results

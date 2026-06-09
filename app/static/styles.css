@@ -156,23 +156,51 @@ span[class*="material-symbols"], i[class*="material-symbols"] {
    appear, keeping the fixed-positioned switch aligned with the ↑ arrow. */
 html { overflow-y: scroll !important; }
 
-/* Hide the default user avatar icon in chat messages. */
-[data-testid="stChatMessageAvatarUser"] { display: none !important; }
-
-/* Enlarge the assistant (planner) chat avatar. */
-[data-testid="stChatMessageAvatarAssistant"],
-[data-testid="stChatMessageAvatarAssistant"] > *,
-[data-testid="stChatMessageAvatarAssistant"] > * > * {
+/* User avatar — show and size it to match the assistant avatar. */
+[data-testid="stChatMessageAvatarUser"] {
   width: 96px !important;
   height: 96px !important;
   min-width: 96px !important;
   min-height: 96px !important;
-  border-radius: 10px !important;
+  flex-shrink: 0 !important;
+  align-self: flex-start !important;
 }
-[data-testid="stChatMessageAvatarAssistant"] img {
+[data-testid="stChatMessageAvatarUser"] > *,
+[data-testid="stChatMessageAvatarUser"] > * > * {
+  width: 96px !important;
+  height: 96px !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+}
+[data-testid="stChatMessageAvatarUser"] img {
   width: 96px !important;
   height: 96px !important;
   object-fit: contain !important;
+  border-radius: 10px !important;
+}
+
+/* Enlarge the assistant (planner) chat avatar.
+   Streamlit uses stChatMessageAvatarCustom when a file-path avatar is supplied. */
+[data-testid="stChatMessageAvatarCustom"] {
+  width: 96px !important;
+  height: 96px !important;
+  min-width: 96px !important;
+  min-height: 96px !important;
+  flex-shrink: 0 !important;
+  align-self: flex-start !important;
+}
+[data-testid="stChatMessageAvatarCustom"] > *,
+[data-testid="stChatMessageAvatarCustom"] > * > * {
+  width: 96px !important;
+  height: 96px !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+}
+[data-testid="stChatMessageAvatarCustom"] img {
+  width: 96px !important;
+  height: 96px !important;
+  object-fit: contain !important;
+  border-radius: 10px !important;
 }
 
 /* --------------------------------------------------------------------

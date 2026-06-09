@@ -14,9 +14,11 @@ import streamlit as st
 
 _STATIC_DIR = Path(__file__).parent / "static"
 _PLANNER_IMG = _STATIC_DIR / "planner.png"
+_USER_AVATAR_IMG = _STATIC_DIR / "user_avatar.png"
 
-# Avatar used for every assistant turn (chat history + live run).
+# Avatars used for chat turns.
 ASSISTANT_AVATAR = str(_PLANNER_IMG)
+USER_AVATAR = str(_USER_AVATAR_IMG)
 
 
 # ───────────────────────────────────────────────────────────────────
@@ -59,6 +61,12 @@ def setup_page() -> None:
         unsafe_allow_html=True,
     )
 
+    # Sidebar is rendered separately via render_sidebar() so it can be called
+    # after the prompt is known and session_state is up to date.
+
+
+def render_sidebar() -> None:
+    """Public entry-point — call after st.chat_input() so n_msgs is current."""
     with st.sidebar:
         _render_sidebar()
 
@@ -69,7 +77,7 @@ def _render_sidebar() -> None:
     _img_b64 = base64.b64encode(_PLANNER_IMG.read_bytes()).decode()
     inv = st.session_state.get("inventory", {})
     total = inv.get("total", "—")
-    n_msgs = max(len(st.session_state.get("messages", [])) - 1, 0)  # exclude welcome
+    n_msgs = sum(1 for m in st.session_state.get("messages", []) if m.get("role") == "user")
 
     st.markdown(
         f"""

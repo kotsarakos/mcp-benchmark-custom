@@ -59,7 +59,9 @@ def _maybe_welcome() -> None:
 
 
 def _avatar_for(role: str):
-    return ui.ASSISTANT_AVATAR if role == "assistant" else None
+    if role == "assistant":
+        return ui.ASSISTANT_AVATAR
+    return ui.USER_AVATAR
 
 
 def _render_history() -> None:
@@ -72,11 +74,8 @@ def _render_history() -> None:
 
 
 def _handle_prompt(prompt: str, university_mode: bool) -> None:
-    """Run one user turn: record it, stream the pipeline, render the answer."""
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
+    """Run one user turn: stream the pipeline and render the answer.
+    The user message is already appended and rendered by _render_history()."""
     server_subset, active_total = backend.resolve_scope(
         university_mode, st.session_state.inventory
     )
@@ -135,6 +134,10 @@ def main() -> None:
         st.session_state.messages = [
             m for m in st.session_state.messages if not m.get("_html")
         ]
+        st.session_state.messages.append({"role": "user", "content": prompt})
+
+    # Render sidebar after the user message is appended so the counter is current.
+    ui.render_sidebar()
 
     _render_history()
 

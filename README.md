@@ -398,7 +398,7 @@ utils/
 └── local_server_config.py
 
 mcp_servers/
-├── commands.json         # server start commands (used by inventory script)
+├── commands.json         # server start commands
 ├── api_key.example       # template for external API keys
 └── <server-name>/        # one directory per MCP server
 

@@ -1,1 +1,1 @@
-"""HUA-DIT MCP Server package."""
+"""HUA-DIT MCP Server package. For Harokopio University"""
